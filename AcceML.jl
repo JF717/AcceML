@@ -267,3 +267,23 @@ function Hinge2(x,y,m = 0)
    end
    return (1/length(x)) * sum(z)
 end
+
+function NLL(x)
+   z = []
+   for i = 1:length(x)
+      push!(z,log(x[i]))
+   end
+   return (-1/length(x)) * sum(z)
+end
+
+function xent(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,(y[i]*log(x[i])) + (1-y[i])*(log(1-x[i])))
+   end
+   return (-1/length(x)) * sum(z)
+end
+
+function MCXent(x,y)
+   
+end
