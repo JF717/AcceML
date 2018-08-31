@@ -212,6 +212,11 @@ function MSE(x,y)
    return mean(z)
 end
 
+function MSEdif(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,)
+
 function MSLE(x,y)
    z = []
    for i = 1:length(x)
@@ -289,6 +294,14 @@ function xent(x,y)
    return (-1/length(x)) * sum(z)
 end
 
+function xentdif(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,(-y[i]/x[i]) + (1-y[i])/(1-x[i]))
+   end
+   return z
+end
+
 function MCXent(x,y)
    z = []
    for i = 1:length(x)
@@ -326,4 +339,12 @@ function cosprox(x,y)
       push!(c,x[i]^2)
    end
    return sum(a) / sqrt(sum(b)) * sqrt(sum(c))
+end
+
+
+
+
+
+function backprop()
+
 end
