@@ -285,5 +285,23 @@ function xent(x,y)
 end
 
 function MCXent(x,y)
-   
+
+end
+
+function KLdiv(x,y)
+   z = []
+   a = []
+   for i = 1:length(x)
+      push!(z,y[i] * log(y[i]))
+      push!(a,y[i] * log(x[i]))
+   end
+   return ((1/length(x)) * sum(z)) - ((1/length(x))*sum(a))
+end
+
+function poissonloss
+   z = []
+   for i = 1:length(x)
+      push!(z,x[i]-y[i]*log(x[i]))
+   end
+   return (1/length(x)) * sum(z)
 end
