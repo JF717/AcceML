@@ -287,6 +287,7 @@ function MAEdiff(x,y)
       push!(z,0)
       end
    end
+   return z
 end
 
 function MAPE(x,y)
@@ -297,22 +298,40 @@ function MAPE(x,y)
    return (1/length(x)) * sum(z)
 end
 
-function Hinge(x,y,m = 0)
+function Hinge(x,y,m = 1)
    z = []
    for i = 1:length(x)
-      push!(z,max(0,1 - y[i] * x[i]))
+      push!(z,max(0,m - y[i] * x[i]))
    end
    return (1/length(x)) * sum(z)
 end
 
-
-
-function Hinge2(x,y,m = 0)
+function Hingediff(x,y,m=1)
    z = []
    for i = 1:length(x)
-      push!(z,max(0,1 - y[i] * x[i])^2)
+      if max(m,1 - y[i] * x[i]) < 1
+         push!(z,-y[i]*x[i])
+      elseif max(0,m - y[i] * x[i]) > 1
+       push!(z,0)
+      end
+   end
+   return z
+end
+
+function Hinge2(x,y,m = 1)
+   z = []
+   for i = 1:length(x)
+      push!(z,max(0,m - y[i] * x[i])^2)
    end
    return (1/length(x)) * sum(z)
+end
+
+function Hinge2diff(x,y, m = 0)
+   z = []
+   for i = 1:length(x)
+      if
+   end
+   return z
 end
 
 function NLL(x,y)
@@ -326,6 +345,11 @@ end
 function NLLtot(x,y)
    push!(y,x)
    return sum(y)
+end
+
+function NLLdiff(x,y)
+   z = []
+   for i = 1:length(x)
 end
 
 function xent(x,y)
