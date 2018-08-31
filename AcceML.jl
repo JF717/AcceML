@@ -215,7 +215,10 @@ end
 function MSEdif(x,y)
    z = []
    for i = 1:length(x)
-      push!(z,)
+      push!(z,y[i]-x[i])
+   end
+   return z
+end
 
 function MSLE(x,y)
    z = []
@@ -223,6 +226,14 @@ function MSLE(x,y)
       push!(z,log1p((y[i]) - log1p(x[i]))^2)
    end
    return mean(z)
+end
+
+function MSLEdiff(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z, (log(y) - log(x)) / x)
+   end
+   return z
 end
 
 function L1(x,y)
@@ -233,6 +244,14 @@ function L1(x,y)
    return sum(z)
 end
 
+function L1diff(z,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,(y[i] - x[i])/(abs(y[i] - x[i])))
+   end
+   return z
+end
+
 function L2(x,y)
    z = []
    for i = 1:length(x)
@@ -241,12 +260,33 @@ function L2(x,y)
    return sum(z)
 end
 
+function L2diff(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,2 * (y[i] - z[i]))
+   end
+   return z
+end
+
 function MAE(x,y)
    z = []
    for i = 1:length(x)
       push!(z,abs(y[i] - x[i]))
    end
    return (1/length(x)) * sum(z)
+end
+
+function MAEdiff(x,y)
+   z = []
+   for i = 1:length(x)
+      if y[i] - x[i] > 0
+      push!(z, 1)
+      elseif y[i] - x[i] < 0
+      push!(z, -1)
+      else
+      push!(z,0)
+      end
+   end
 end
 
 function MAPE(x,y)
@@ -264,6 +304,8 @@ function Hinge(x,y,m = 0)
    end
    return (1/length(x)) * sum(z)
 end
+
+
 
 function Hinge2(x,y,m = 0)
    z = []
@@ -291,7 +333,7 @@ function xent(x,y)
    for i = 1:length(x)
       push!(z,(y[i]*log(x[i])) + (1-y[i])*(log(1-x[i])))
    end
-   return (-1/length(x)) * sum(z)
+   return (-(1/length(x)) * sum(z))
 end
 
 function xentdif(x,y)
