@@ -268,12 +268,17 @@ function Hinge2(x,y,m = 0)
    return (1/length(x)) * sum(z)
 end
 
-function NLL(x)
-   z = []
+function NLL(x,y)
    for i = 1:length(x)
-      push!(z,log(x[i]))
+      if y[i] == 1
+         return -log(x[i])
+      end
    end
-   return (-1/length(x)) * sum(z)
+end
+
+function NLLtot(x,y)
+   push!(y,x)
+   return sum(y)
 end
 
 function xent(x,y)
@@ -285,8 +290,13 @@ function xent(x,y)
 end
 
 function MCXent(x,y)
-
+   z = []
+   for i = 1:length(x)
+      push!(z,y[i]* log(x[i]))
+   end
+   return sum(z)
 end
+
 
 function KLdiv(x,y)
    z = []
@@ -298,10 +308,22 @@ function KLdiv(x,y)
    return ((1/length(x)) * sum(z)) - ((1/length(x))*sum(a))
 end
 
-function poissonloss
+function poissonloss(x,y)
    z = []
    for i = 1:length(x)
-      push!(z,x[i]-y[i]*log(x[i]))
+      push!(z, x[i] - (y[i]*log(x[i])))
    end
    return (1/length(x)) * sum(z)
+end
+
+function cosprox(x,y)
+   a = []
+   b = []
+   c = []
+   for i = 1:length(x)
+      push!(a,y[i]*x[i])
+      push!(b,y[i]^2)
+      push!(c,x[i]^2)
+   end
+   return sum(a) / sqrt(sum(b)) * sqrt(sum(c))
 end
