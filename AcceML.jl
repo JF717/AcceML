@@ -428,12 +428,173 @@ function cosproxdiff(x,y)
 end
 
 function backprop(x,y,lossfunc, ActivFuns)
-   z = []
- if lossfunc == "NLLdiff"
-    for i = 1:length(x)
-      cur = NLLdiff(x[i])
-      if ActivFuns[i] == "Softmax"
-         pd = SoftmaxDiff()
-
- end
+   grad = dict()
+   if lossfunc == "NLL"
+      for i = length(x):1
+         cur = NLLdiff(x[i])
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "MSE"
+      for i = length(x):1
+         cur = MSEdif(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "MAE"
+      for i = length(x):1
+         cur = MAEdiff(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "MAPE"
+      for i = length(x):1
+         cur = MAEdiff(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "xent"
+      for i = length(x):1
+         cur = xentdif(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "cosprox"
+      for i = length(x):1
+         cur = cosproxdiff(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "poissonloss"
+      for i = length(x):1
+         cur = poissondiff(x[i],y)
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
+   if lossfunc == "MCXent"
+      for i = length(x):1
+         cur = NLLdiff(x[i])
+         if ActivFuns[i] == "Softmax"
+            pd = SoftmaxDiff(x[i])
+         end
+         if ActivFuns[i] == "Sigmoid"
+            pd = SigmoidDiff(x[i])
+         end
+         if ActivFuns[i] == "tanh"
+            pd = TanhDiff(x[i])
+         end
+         if ActivFuns[i] == "ReLU"
+            pd = ReLUDiff(x[i])
+         end
+         if ActivFuns[i] == "LeakyReLU"
+            pd = LeakyReLUDiff(x[i])
+         end
+         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
+      end
+   end
 end
