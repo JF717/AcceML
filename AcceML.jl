@@ -326,13 +326,6 @@ function Hinge2(x,y,m = 1)
    return (1/length(x)) * sum(z)
 end
 
-function Hinge2diff(x,y, m = 0)
-   z = []
-   for i = 1:length(x)
-      if
-   end
-   return z
-end
 
 function NLL(x,y)
    for i = 1:length(x)
@@ -434,8 +427,13 @@ function cosproxdiff(x,y)
    return z
 end
 
+function backprop(x,y,lossfunc, ActivFuns)
+   z = []
+ if lossfunc == "NLLdiff"
+    for i = 1:length(x)
+      cur = NLLdiff(x[i])
+      if ActivFuns[i] == "Softmax"
+         pd = SoftmaxDiff()
 
-
-function backprop()
-
+ end
 end
