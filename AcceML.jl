@@ -350,6 +350,9 @@ end
 function NLLdiff(x,y)
    z = []
    for i = 1:length(x)
+      push!(z, -1/x[i])
+   end
+   return z
 end
 
 function xent(x,y)
