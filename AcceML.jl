@@ -379,6 +379,13 @@ function MCXent(x,y)
    return sum(z)
 end
 
+function MCXentdiff(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z, 1/x[i])
+   end
+   return z
+end
 
 function KLdiv(x,y)
    z = []
@@ -398,6 +405,15 @@ function poissonloss(x,y)
    return (1/length(x)) * sum(z)
 end
 
+function poissondiff(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z, 1 - 1 * 1/x[i])
+   end
+   return z
+end
+
+
 function cosprox(x,y)
    a = []
    b = []
@@ -410,7 +426,13 @@ function cosprox(x,y)
    return sum(a) / sqrt(sum(b)) * sqrt(sum(c))
 end
 
-
+function cosproxdiff(x,y)
+   z = []
+   for i = 1:length(x)
+      push!(z,x[i]/ (abs(y[i]) * abs(x[i]) - ((y[i] * x[i])/ (sqrt((y[i]^2)) * sqrt((x[i]^2))) * (y[i]/(abs(y[i])^2)))))
+   end
+   return z
+end
 
 
 
