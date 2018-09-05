@@ -142,7 +142,7 @@ function ForwardPass(Input,Weights,ActivFuns)
       if i == length(Weights)
          layername = string("Output")
       end
-      cur =  dotprodmat(z[i][2][2],Weights[i][2])
+      cur =  dotprodmat(z[i][2],Weights[i][2])
       a[i] = string(layername,"Weights") => cur
       if ActivFuns[i] == "Sigmoid"
          z[i+1] = layername => Sigmoid.(cur)
@@ -434,7 +434,7 @@ function backprop(x,y,lossfunc, ActivFuns)
    grad = Dict()
    if lossfunc == "NLL"
       for i = length(x):-1:1
-         cur = NLLdiff(x[i][2])
+         cur = NLLdiff(x[1][i][2])
          if ActivFuns[i] == "Softmax"
             pd = SoftmaxDiff(x[i])
          end
@@ -517,24 +517,26 @@ function backprop(x,y,lossfunc, ActivFuns)
       end
    end
    if lossfunc == "xent"
-      for i = length(x):1
-         cur = xentdif(x[i][2],y)
+      for i = length(x):-1:1
+         cur = xentdif(x[1][i][2],y)
          if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
+            pd = SoftmaxDiff(x[2][i-1][2])
          end
          if ActivFuns[i] == "Sigmoid"
             pd = SigmoidDiff.(x[i][2])
+            a = x[1][i-1][i-1]
+            b = cur * pd
+            grad[i] = string(Weights,i) => a * b
          end
          if ActivFuns[i] == "tanh"
             pd = TanhDiff(x[i])
          end
          if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
+            pd = ReLUDiff.(x[1][i][i])
          end
          if ActivFuns[i] == "LeakyReLU"
             pd = LeakyReLUDiff(x[i])
          end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
       end
    end
    if lossfunc == "cosprox"
