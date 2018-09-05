@@ -430,6 +430,16 @@ function cosproxdiff(x,y)
    return z
 end
 
+function invdot(x,y)
+   z = []
+   for j = 1:length(x)
+      for i = 1:length(y)
+         push!(z,x[j] * y[i])
+      end
+   end
+   return reshape(z,length(x),length(y))
+end
+
 function backprop(x,y,lossfunc, ActivFuns)
    grad = Dict()
    if lossfunc == "NLL"
