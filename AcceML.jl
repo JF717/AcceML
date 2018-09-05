@@ -362,7 +362,7 @@ end
 function xentdif(x,y)
    z = []
    for i = 1:length(x)
-      push!(z,(-y[i]/x[i]) + (1-y[i])/(1-x[i]))
+      push!(z,-1 * (1/x[i]) + (1-y[i])*(1/(1-x[i])))
    end
    return z
 end
