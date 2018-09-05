@@ -136,6 +136,7 @@ function ForwardPass(Input,Weights,ActivFuns)
    z = Dict()
    a = Dict()
    z[1] = "Input" => Input
+   a[1] = "Input" => Input
    cur = []
    for i = 1:length(Weights)
       layername = string("Layer",i)
@@ -143,7 +144,7 @@ function ForwardPass(Input,Weights,ActivFuns)
          layername = string("Output")
       end
       cur =  dotprodmat(z[i][2],Weights[i][2])
-      a[i] = string(layername,"Weights") => cur
+      a[i+1] = string(layername,"Weights") => cur
       if ActivFuns[i] == "Sigmoid"
          z[i+1] = layername => Sigmoid.(cur)
       end
@@ -613,3 +614,29 @@ function backprop(x,y,lossfunc, ActivFuns)
       end
    end
 end
+
+#backprop of output to hidden layer
+### work out derivative of output
+a = SigmoidDiff.(t2[1][3][2])
+
+#work out xentdif of output to real
+b = xentdif(t2[1][3][2],[1])
+
+#get the output of the hidden layer before activation
+c = t2[2][1][2]
+
+#now do dot. of the function dif and the error dif
+d = dot.(a,b)
+#now do invdot of this and ouput of the hidden layer before act
+e = invdot(c,d)
+#these are our gradients to change the weights by
+
+#now for the input to hidden layer back prop
+#we still need a and b but this time we work out
+#the product with the weights of the hidden layer
+f = invdot(t1[2][2],dot.(a,b))
+#now we need the derivative of our hidden layer output
+g = ReLUDiff.(t2[2][1][2])
+#finally we want the invdot of the input and
+# the dot. of f and g
+h = invdot(Input,dot.(f,g))
