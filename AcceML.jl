@@ -53,7 +53,7 @@ end
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
 function Sigmoid(x)
-   return 1 / (1 + exp(-x))
+   return 1.0 ./ (1.0 .+ exp(-x))
 end
 
 #Softmax transforms between 0 and 1 with weights of total, used for multi classification
@@ -63,8 +63,8 @@ end
 
 #ReLU transforms all negative values into 0. You lose gradient descent power
 function ReLU(x)
-   if x[i] < 0
-      x[i] = 0
+   if x < 0
+      x = 0
    end
    return x
 end
@@ -120,6 +120,7 @@ function InitialiseNet(LayNeur,InitMethod)
    return Weights
 end
 
+#function to do matrix dot multiplication like numpy.
 function dotprodmat(x,y)
    out = []
    for i = range(1; stop = length(y), step = length(x))
@@ -133,6 +134,7 @@ end
 #the initial weights and the activation functions of each layer
 function ForwardPass(Input,Weights,ActivFuns)
    z = Dict()
+   a = Dict()
    z[1] = "Input" => Input
    cur = []
    for i = 1:length(Weights)
@@ -140,7 +142,8 @@ function ForwardPass(Input,Weights,ActivFuns)
       if i == length(Weights)
          layername = string("Output")
       end
-      cur =  dotprodmat(z[i][2],Weights[i][2])
+      cur =  dotprodmat(z[i][2][2],Weights[i][2])
+      a[i] = string(layername,"Weights") => cur
       if ActivFuns[i] == "Sigmoid"
          z[i+1] = layername => Sigmoid.(cur)
       end
@@ -157,7 +160,7 @@ function ForwardPass(Input,Weights,ActivFuns)
          z[i+1] = layername => LeakyReLU.(cur)
       end
    end
-   return z
+   return z,a
 end
 
 function SigmoidDiff(x)
@@ -327,7 +330,7 @@ function Hinge2(x,y,m = 1)
 end
 
 
-function NLL(x,y)
+function NLL(x)
    for i = 1:length(x)
       if y[i] == 1
          return -log(x[i])
@@ -340,7 +343,7 @@ function NLLtot(x,y)
    return sum(y)
 end
 
-function NLLdiff(x,y)
+function NLLdiff(x)
    z = []
    for i = 1:length(x)
       push!(z, -1/x[i])
@@ -428,10 +431,10 @@ function cosproxdiff(x,y)
 end
 
 function backprop(x,y,lossfunc, ActivFuns)
-   grad = dict()
+   grad = Dict()
    if lossfunc == "NLL"
-      for i = length(x):1
-         cur = NLLdiff(x[i])
+      for i = length(x):-1:1
+         cur = NLLdiff(x[i][2])
          if ActivFuns[i] == "Softmax"
             pd = SoftmaxDiff(x[i])
          end
@@ -515,12 +518,12 @@ function backprop(x,y,lossfunc, ActivFuns)
    end
    if lossfunc == "xent"
       for i = length(x):1
-         cur = xentdif(x[i],y)
+         cur = xentdif(x[i][2],y)
          if ActivFuns[i] == "Softmax"
             pd = SoftmaxDiff(x[i])
          end
          if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
+            pd = SigmoidDiff.(x[i][2])
          end
          if ActivFuns[i] == "tanh"
             pd = TanhDiff(x[i])
