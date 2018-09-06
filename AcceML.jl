@@ -216,7 +216,7 @@ function MSE(x,y)
    return mean(z)
 end
 
-function MSEdif(x,y)
+function MSEDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z,y[i]-x[i])
@@ -232,7 +232,7 @@ function MSLE(x,y)
    return mean(z)
 end
 
-function MSLEdiff(x,y)
+function MSLEDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z, (log(y) - log(x)) / x)
@@ -248,7 +248,7 @@ function L1(x,y)
    return sum(z)
 end
 
-function L1diff(z,y)
+function L1Diff(z,y)
    z = []
    for i = 1:length(x)
       push!(z,(y[i] - x[i])/(abs(y[i] - x[i])))
@@ -264,7 +264,7 @@ function L2(x,y)
    return sum(z)
 end
 
-function L2diff(x,y)
+function L2Diff(x,y)
    z = []
    for i = 1:length(x)
       push!(z,2 * (y[i] - z[i]))
@@ -280,7 +280,7 @@ function MAE(x,y)
    return (1/length(x)) * sum(z)
 end
 
-function MAEdiff(x,y)
+function MAEDiff(x,y)
    z = []
    for i = 1:length(x)
       if y[i] - x[i] > 0
@@ -310,7 +310,7 @@ function Hinge(x,y,m = 1)
    return (1/length(x)) * sum(z)
 end
 
-function Hingediff(x,y,m=1)
+function HingeDiff(x,y,m=1)
    z = []
    for i = 1:length(x)
       if max(m,1 - y[i] * x[i]) < 1
@@ -344,7 +344,7 @@ function NLLtot(x,y)
    return sum(y)
 end
 
-function NLLdiff(x)
+function NLLDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z, -1/x[i])
@@ -360,7 +360,7 @@ function xent(x,y)
    return (-(1/length(x)) * sum(z))
 end
 
-function xentdif(x,y)
+function xentDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z,-1 * (1/x[i]) + (1-y[i])*(1/(1-x[i])))
@@ -376,7 +376,7 @@ function MCXent(x,y)
    return sum(z)
 end
 
-function MCXentdiff(x,y)
+function MCXentDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z, 1/x[i])
@@ -402,7 +402,7 @@ function poissonloss(x,y)
    return (1/length(x)) * sum(z)
 end
 
-function poissondiff(x,y)
+function poissonDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z, 1 - 1 * 1/x[i])
@@ -423,7 +423,7 @@ function cosprox(x,y)
    return sum(a) / sqrt(sum(b)) * sqrt(sum(c))
 end
 
-function cosproxdiff(x,y)
+function cosproxDiff(x,y)
    z = []
    for i = 1:length(x)
       push!(z,x[i]/ (abs(y[i]) * abs(x[i]) - ((y[i] * x[i])/ (sqrt((y[i]^2)) * sqrt((x[i]^2))) * (y[i]/(abs(y[i])^2)))))
@@ -439,180 +439,6 @@ function invdot(x,y)
       end
    end
    return reshape(z,length(x),length(y))
-end
-
-function backprop(x,y,lossfunc, ActivFuns)
-   grad = Dict()
-   if lossfunc == "NLL"
-      for i = length(x):-1:1
-         cur = NLLdiff(x[1][i][2])
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "MSE"
-      for i = length(x):1
-         cur = MSEdif(x[i],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "MAE"
-      for i = length(x):1
-         cur = MAEdiff(x[i],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "MAPE"
-      for i = length(x):1
-         cur = MAEdiff(x[i],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "xent"
-      for i = length(x):-1:1
-         cur = xentdif(x[1][i][2],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[2][i-1][2])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff.(x[i][2])
-            a = x[1][i-1][i-1]
-            b = cur * pd
-            grad[i] = string(Weights,i) => a * b
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff.(x[1][i][i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-      end
-   end
-   if lossfunc == "cosprox"
-      for i = length(x):1
-         cur = cosproxdiff(x[i],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "poissonloss"
-      for i = length(x):1
-         cur = poissondiff(x[i],y)
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
-   if lossfunc == "MCXent"
-      for i = length(x):1
-         cur = NLLdiff(x[i])
-         if ActivFuns[i] == "Softmax"
-            pd = SoftmaxDiff(x[i])
-         end
-         if ActivFuns[i] == "Sigmoid"
-            pd = SigmoidDiff(x[i])
-         end
-         if ActivFuns[i] == "tanh"
-            pd = TanhDiff(x[i])
-         end
-         if ActivFuns[i] == "ReLU"
-            pd = ReLUDiff(x[i])
-         end
-         if ActivFuns[i] == "LeakyReLU"
-            pd = LeakyReLUDiff(x[i])
-         end
-         grad[i] = string(Weights,i) => dotprodmat(x[i+1],(cur*pd))
-      end
-   end
 end
 
 #backprop of output to hidden layer
@@ -641,7 +467,14 @@ g = ReLUDiff.(t2[2][1][2])
 # the dot. of f and g
 h = invdot(Input,dot.(f,g))
 
-function BackPropagation(x,y,losfunc,ActivFuns)
-   s = Symbol(losfunc)
-   f = getfield(Main,s)
-   Ed = f(x[1][length(x)][2])
+function BackPropagation(x,y,lossfunc,ActivFuns)
+   # calculating the differential of the loss of ouput
+   ld = string(lossfunc,"Diff")
+   ls = Symbol(ld)
+   lf = getfield(Main,ls)
+   Ed = lf(x[1][length(x[1])][2],y)
+   #calculating the differential of the output activation
+   ad = string(ActivFuns[length(ActivFuns)],"Diff")
+   as = Symbol(ad)
+   af = getfield(Main,as)
+   Od = af(x[1][length(x[1])][2])
