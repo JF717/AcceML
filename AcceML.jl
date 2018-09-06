@@ -640,3 +640,8 @@ g = ReLUDiff.(t2[2][1][2])
 #finally we want the invdot of the input and
 # the dot. of f and g
 h = invdot(Input,dot.(f,g))
+
+function BackPropagation(x,y,losfunc,ActivFuns)
+   s = Symbol(losfunc)
+   f = getfield(Main,s)
+   Ed = f(x[1][length(x)][2])
