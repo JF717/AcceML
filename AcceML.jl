@@ -444,12 +444,10 @@ end
 function BackPropagation(x,y,lossfunc,ActivFuns,W,LR)
    z = Dict()
    # calculating the differential of the loss of ouput
-   ls = Symbol(string(lossfunc,"Diff"))
-   lf = getfield(Main,ls)
+   lf = getfield(Main,Symbol(string(lossfunc,"Diff")))
    Ed = lf(x[1][length(x[1])][2],y)
    #calculating the differential of the output activation
-   as = Symbol(string(ActivFuns[length(ActivFuns)],"Diff"))
-   af = getfield(Main,as)
+   af = getfield(Main,Symbol(string(ActivFuns[length(ActivFuns)],"Diff")))
    Od = af.(x[2][length(x[1])][2])
    EW = dot.(Ed,Od)
    z[length(W)] = "OutputLayerWeightGrad" => invdot(W[length(W)][2],EW)
@@ -459,8 +457,7 @@ function BackPropagation(x,y,lossfunc,ActivFuns,W,LR)
       #the first layer
       LE = invdot(x[1][i][2],EW)
       #get activation function and do diff of it on unactivated layer input
-      as = Symbol(string(ActivFuns[i],"Diff"))
-      af = getfield(Main,as)
+      af = getfield(Main,Symbol(string(ActivFuns[i],"Diff")))
       hd = af.(x[2][i][2])
       #dot product of this layers error and it's activation diff
       LEhd = dot.(LE,hd)
@@ -479,4 +476,29 @@ function BackPropagation(x,y,lossfunc,ActivFuns,W,LR)
    return NW
 end
 
-function ANN(Input,Correct,Struc,InitMethod,ActivFuns,lossfunc)
+function TrainANN(Input,Correct,Struc,InitMethod,ActivFuns,lossfunc,LR,Report)
+   Wgts = InitialiseNet(Struc,InitMethod)
+   lf = getfield(Main,Symbol(lossfunc))
+   c = 1
+   for i = 1:length(Input)
+      F = ForwardPass(Input[i],Wgts,ActivFuns)
+      if c == Report
+         print(string("Loss:",lf(F[1][i][2],Correct[i])))
+         c = 0
+      end
+      Wgts = BackPropagation(F,Correct[i],lossfunc,Wgts,LR)
+      c += 1
+   end
+   print(string("New Synaptic weights after training:"))
+   Wgts
+   return Wgts
+end
+
+function RunANN(Input,Wgts,ActivFuns)
+   clas = Dict()
+   for i = 1:length(Input)
+      O = ForwardPass(Input[i],Wgts,ActivFuns)
+      clas[i] = Input[i] => O[1][i][2]
+   end
+   return clas
+end
