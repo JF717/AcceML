@@ -144,7 +144,7 @@ function ForwardPass(Input,Weights,ActivFuns)
          layername = string("Output")
       end
       cur =  dotprodmat(z[i][2],Weights[i][2])
-      a[i+1] = string(layername,"Weights") => cur
+      a[i+1] = string(layername,"unact") => cur
       if ActivFuns[i] == "Sigmoid"
          z[i+1] = layername => Sigmoid.(cur)
       end
@@ -441,40 +441,42 @@ function invdot(x,y)
    return reshape(z,length(x),length(y))
 end
 
-#backprop of output to hidden layer
-### work out derivative of output
-a = SigmoidDiff.(t2[1][3][2])
-
-#work out xentdif of output to real
-b = xentdif(t2[1][3][2],[1])
-
-#get the output of the hidden layer before activation
-c = t2[2][1][2]
-
-#now do dot. of the function dif and the error dif
-d = dot.(a,b)
-#now do invdot of this and ouput of the hidden layer before act
-e = invdot(c,d)
-#these are our gradients to change the weights by
-
-#now for the input to hidden layer back prop
-#we still need a and b but this time we work out
-#the product with the weights of the hidden layer
-f = invdot(t1[2][2],dot.(a,b))
-#now we need the derivative of our hidden layer output
-g = ReLUDiff.(t2[2][1][2])
-#finally we want the invdot of the input and
-# the dot. of f and g
-h = invdot(Input,dot.(f,g))
-
-function BackPropagation(x,y,lossfunc,ActivFuns)
+function BackPropagation(x,y,lossfunc,ActivFuns,W,LR)
+   z = Dict()
    # calculating the differential of the loss of ouput
-   ld = string(lossfunc,"Diff")
-   ls = Symbol(ld)
+   ls = Symbol(string(lossfunc,"Diff"))
    lf = getfield(Main,ls)
    Ed = lf(x[1][length(x[1])][2],y)
    #calculating the differential of the output activation
-   ad = string(ActivFuns[length(ActivFuns)],"Diff")
-   as = Symbol(ad)
+   as = Symbol(string(ActivFuns[length(ActivFuns)],"Diff"))
    af = getfield(Main,as)
-   Od = af(x[1][length(x[1])][2])
+   Od = af.(x[2][length(x[1])][2])
+   EW = dot.(Ed,Od)
+   z[length(W)] = "OutputLayerWeightGrad" => invdot(W[length(W)][2],EW)
+   #these relative differentials are then used in every layer
+   for i = (length(x[1])-1):-1:2
+      #work out the layer error - the output of layer times the Error dif from
+      #the first layer
+      LE = invdot(x[1][i][2],EW)
+      #get activation function and do diff of it on unactivated layer input
+      as = Symbol(string(ActivFuns[i],"Diff"))
+      af = getfield(Main,as)
+      hd = af.(x[2][i][2])
+      #dot product of this layers error and it's activation diff
+      LEhd = dot.(LE,hd)
+      #if we are on the final layer have to do it with the input instead
+      if i == 2
+         z[i-1] = string("Layer",(i-1),"WeightGrad") => invdot(x[1][1][2],LEhd)
+      else
+         #final gradient from the LEhd invdot with the previous layers weights
+         z[i-1] = string("Layer",(i-1),"WeightGrad") => invdot(W[i-1][2],LEhd)
+      end
+   end
+   NW = Dict()
+   for i = 1:length(W)
+      NW[i] = string("WeightsLayer",i) => W[i][2] - (LR * z[i][2])
+   end
+   return NW
+end
+
+function ANN(Input,Correct,Struc,InitMethod,ActivFuns,lossfunc)
