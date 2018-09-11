@@ -520,4 +520,12 @@ function InitialiseRNN(HL,OC)
    return z
 end
 
-function RNNForward(Input,prev_o,w1,w2,V,)
+function RNNForward(Input,prev_o,W,ActivFun)
+   a = dotprodmat(W[1][2],Input)
+   b = dotprodmat(w[2][2],prev_o)
+   c = a + b
+   af = getfield(Main,Symbol(ActivFun))
+   d = af.(c)
+   e = dotprodmat(w[2][2],d)
+   return d, e
+end
