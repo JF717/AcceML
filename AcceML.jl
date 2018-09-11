@@ -502,3 +502,22 @@ function RunANN(Input,Wgts,ActivFuns)
    end
    return clas
 end
+
+#initialising a simple RNN is a bit easier, we have a
+#fixed number of layer weights but we still need to
+#create the layers generally it will be a hidden
+#and an output layer the size of our classification
+#the initialisation function will relate to the
+#activation function generally always sigmoid
+#or tanh so we will use weights between -1 and 1
+function InitialiseRNN(HL,OC)
+   #HL is hidden layer size
+   #OC is output classification size
+   z = Dict()
+   z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(OC),1/sqrt(OC)),(OC * HL)),HL,OC)
+   z[2] = "Hidwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(HL * HL)),HL,HL)
+   z[3] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(OC * HL)),OC,HL)
+   return z
+end
+
+function RNNForward(Input,prev_o,w1,w2,V,)
