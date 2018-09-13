@@ -510,38 +510,55 @@ end
 #the initialisation function will relate to the
 #activation function generally always sigmoid
 #or tanh so we will use weights between -1 and 1
-function InitialiseRNN(HL,OC)
+function InitialiseRNN(Lenin,lenHL,dimin,lenOC)
    #HL is hidden layer size
    #OC is output classification size
    z = Dict()
-   z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(OC),1/sqrt(OC)),(OC * HL)),HL,OC)
+   z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(IN),1/sqrt(IN)),(IN * HL)),HL,IN)
    z[2] = "Hidwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(HL * HL)),HL,HL)
    z[3] = "Outwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(OC * HL)),OC,HL)
    return z
 end
 
 function RNNForward(Input,prev_o,W,ActivFun)
-   a = dotprodmat(W[1][2],Input)
-   b = dotprodmat(w[2][2],prev_o)
-   c = a + b
+   a = Input * W[1][2]
+   b = prev_o * W[2][2]
+   c = b + a
    af = getfield(Main,Symbol(ActivFun))
    next_o = af.(c)
-   out = dotprodmat(w[2][2],d)
-   return prev_0, next_o, out
+   return prev_0, next_o
 end
 
 function RNNForwardPass(In,HL,W,ActivFun)
-   prev_o = zeros(HL[1],HL[2])
+   prev_o = zeros(,HL)
    cache = Dict()
    for i = 1:length(In)
       prev_o,next_o, out = RNNForward(In[i],prev_o,W,ActivFun)
       cache[i] = prev_o,next_o, out
    end
-   return
+   return cache
 end
 
-function RNNBackwards(Input,cache, W, ActivFun,Dout)
+function RNNBackwards(Input,prev_o,next_o, W, ActivFun,Dout)
    afd = getfield(Main,Symbol(string(ActivFun,"Diff")))
-   diff =  adf(cache[2])
-   intdp = 
+   diff =  adf(next_o)
+   intdp = dot.(diff,Dout)
+
+
 end
+
+x = [0.21212759  0.20068368 -0.25739828 -0.92204813  0.44011256;
+        0.58382773 0.41099335  0.59474851 -0.23357165  2.21302437;
+       0.50331523  1.04269847 -0.09469478  1.31184106 -1.21126683]
+
+y = [1.55129654 -0.44200246  0.09548306;
+       0.68169094  0.2078611   0.47141342]
+
+a = [0.38393753 -0.4553084 -0.77639999  0.03672049 -1.15656548;
+       -0.45792203 -1.15283084 -0.99013277 -1.22752895  0.56850579]
+
+b = [-0.07745447  1.06142036  1.34817745 -0.63429171 -0.92465357;
+        0.83328     1.09082883  0.43497739  0.00803522 -0.01927506;
+       -0.74239943  0.46640338  0.75440295 -0.64106099  1.00768304;
+       -0.49208774 -1.12482533 -0.10697533  1.26381508 -0.1137914 ;
+       -1.44903235 -0.89177859  0.01743514  0.40812692  0.87127592]
