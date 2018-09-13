@@ -516,7 +516,7 @@ function InitialiseRNN(HL,OC)
    z = Dict()
    z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(OC),1/sqrt(OC)),(OC * HL)),HL,OC)
    z[2] = "Hidwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(HL * HL)),HL,HL)
-   z[3] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(OC * HL)),OC,HL)
+   z[3] = "Outwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(OC * HL)),OC,HL)
    return z
 end
 
@@ -525,7 +525,23 @@ function RNNForward(Input,prev_o,W,ActivFun)
    b = dotprodmat(w[2][2],prev_o)
    c = a + b
    af = getfield(Main,Symbol(ActivFun))
-   d = af.(c)
-   e = dotprodmat(w[2][2],d)
-   return d, e
+   next_o = af.(c)
+   out = dotprodmat(w[2][2],d)
+   return prev_0, next_o, out
+end
+
+function RNNForwardPass(In,HL,W,ActivFun)
+   prev_o = zeros(HL[1],HL[2])
+   cache = Dict()
+   for i = 1:length(In)
+      prev_o,next_o, out = RNNForward(In[i],prev_o,W,ActivFun)
+      cache[i] = prev_o,next_o, out
+   end
+   return
+end
+
+function RNNBackwards(Input,cache, W, ActivFun,Dout)
+   afd = getfield(Main,Symbol(string(ActivFun,"Diff")))
+   diff =  adf(cache[2])
+   intdp = 
 end
