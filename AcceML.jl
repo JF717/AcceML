@@ -510,17 +510,18 @@ end
 #the initialisation function will relate to the
 #activation function generally always sigmoid
 #or tanh so we will use weights between -1 and 1
-function InitialiseRNN(Lenin,lenHL,dimin,lenOC)
+function InitialiseRNN(Lenin,LenHL,lenOC)
    #HL is hidden layer size
    #OC is output classification size
    z = Dict()
-   z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(IN),1/sqrt(IN)),(IN * HL)),HL,IN)
-   z[2] = "Hidwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(HL * HL)),HL,HL)
-   z[3] = "Outwts" => reshape(rand(Uniform(-1/sqrt(HL),1/sqrt(HL)),(OC * HL)),OC,HL)
+   z[1] = "IntoHid" => reshape(rand(Uniform(-1/sqrt(Lenin),1/sqrt(Lenin)),(Lenin * LenHL)),LenHL,Lenin)
+   z[2] = "Hidwts" => reshape(rand(Uniform(-1/sqrt(LenHL),1/sqrt(LenHL)),(LenHL * LenHL)),LenHL,LenHL)
+   z[3] = "Outwts" => reshape(rand(Uniform(-1/sqrt(LenHL),1/sqrt(LenHL)),(lenOC * LenHL)),LenHL,lenOC)
    return z
 end
 
-function RNNForward(Input,prev_o,W,ActivFun)
+function RNNForward(Input,prev_o,W,ActivFun,dimin)
+   In = reshape(Input,length(Input),dimin)
    a = Input * W[1][2]
    b = prev_o * W[2][2]
    c = b + a
@@ -530,7 +531,7 @@ function RNNForward(Input,prev_o,W,ActivFun)
 end
 
 function RNNForwardPass(In,HL,W,ActivFun)
-   prev_o = zeros(,HL)
+   prev_o = zeros(size(In)[1],HL)
    cache = Dict()
    for i = 1:length(In)
       prev_o,next_o, out = RNNForward(In[i],prev_o,W,ActivFun)
