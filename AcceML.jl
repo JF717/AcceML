@@ -521,9 +521,11 @@ function InitialiseRNN(Lenin,LenHL,lenOC)
 end
 
 function RNNForward(Input,prev_o,W,ActivFun,dimin)
-   In = reshape(Input,length(Input),dimin)
-   a = Input * W[1][2]
-   b = prev_o * W[2][2]
+   if dimin < 2
+      Input = reshape(Input,dimin,length(Input))
+   end
+   a = Input * transpose(W[1][2])
+   b = prev_o * transpose(W[2][2])
    c = b + a
    af = getfield(Main,Symbol(ActivFun))
    next_o = af.(c)
@@ -544,22 +546,28 @@ function RNNBackwards(Input,prev_o,next_o, W, ActivFun,Dout)
    afd = getfield(Main,Symbol(string(ActivFun,"Diff")))
    diff =  adf(next_o)
    intdp = dot.(diff,Dout)
-
-
+   daf = getfield(Main,Symbol(string(ActivFun,"Diff")))
+   odif = daf.(next_o)
+   intdot = Dout * odif
+   dW1_s = transpose(intdot)*prev_o
+   dW2_s = transpose(intdot) * Input
+   dW3_s = intdot * W
+   return dW1, dW2, dW3
 end
 
-x = [0.21212759  0.20068368 -0.25739828 -0.92204813  0.44011256;
-        0.58382773 0.41099335  0.59474851 -0.23357165  2.21302437;
-       0.50331523  1.04269847 -0.09469478  1.31184106 -1.21126683]
+function RNNBackwardsprop(dh,cache,W)
+   dW1 = zeros(size(W[1]))
+   dW2 = zeros(size(W[2]))
+   Dout = zeros(size(dh))
+   for i = length(cache):1:-1
+      Dout = dh[i-1]
+      dW1_s,dW2_s,dW3_s = RNNBackwards(cache,cache,cache,W[],Dout)
+      Dout = dW3_s
+      dW1 +=dW1_s
+      dW2 +=dW2_s
+   end
+   return dW1,dW2
+end
 
-y = [1.55129654 -0.44200246  0.09548306;
-       0.68169094  0.2078611   0.47141342]
-
-a = [0.38393753 -0.4553084 -0.77639999  0.03672049 -1.15656548;
-       -0.45792203 -1.15283084 -0.99013277 -1.22752895  0.56850579]
-
-b = [-0.07745447  1.06142036  1.34817745 -0.63429171 -0.92465357;
-        0.83328     1.09082883  0.43497739  0.00803522 -0.01927506;
-       -0.74239943  0.46640338  0.75440295 -0.64106099  1.00768304;
-       -0.49208774 -1.12482533 -0.10697533  1.26381508 -0.1137914 ;
-       -1.44903235 -0.89177859  0.01743514  0.40812692  0.87127592]
+function RNNAflineForward()
+end
