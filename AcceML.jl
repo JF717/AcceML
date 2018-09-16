@@ -569,5 +569,43 @@ function RNNBackwardsprop(dh,cache,W)
    return dW1,dW2
 end
 
-function RNNAflineForward()
+function RNNAflineForward(out,W)
+   th = out * transpose(W)
+   y = Softmax.(th)
+   return y, th
+end
+
+function RNNAflineBackwards(th,W,y,h)
+   dth = SoftmaxDiff(th)
+   loss = NLL(th,y)
+   Losdif = NLLDiff(th,y)
+   dtheta = dot.(dth,Losdif)
+   dU = invdot(W,dtheta)
+   dh = transpose(dtheta) * h
+   return dtheta,dU,dh
+end
+
+
+##### time to build an lstm RNN
+
+function initialiseLSTM(LayNeur,Forg,Peep)
+
+end
+
+function LSTMForward()
+end
+
+function LSTMForwardPass()
+end
+
+function LSTMBackwards()
+end
+
+function LSTMBackwardProp()
+end
+
+function LSTMAfflineFW()
+end
+
+function LSTMAfflineBW()
 end
