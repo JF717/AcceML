@@ -609,7 +609,18 @@ function initialiseLSTM(dimin,hiddim)
    ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),])
 end
 
-function LSTMForward()
+function LSTMForward(x_t,h_prev,s_prev,Params)
+   # compute gate values
+   e_t = Sigmoid.(Params["be"] + (x_t * transpose(Params["Ue"]) + (h_prev * transpose(Params["We"])))
+   f_t = Sigmoid.(Params["bf"] + (x_t * transpose(Params["Uf"]) + (h_prev * transpose(Params["Wf"])))
+   g_t = Sigmoid.(Params["bg"] + (x_t * transpose(Params["Ug"]) + (h_prev * transpose(Params["Wg"])))
+   q_t = Sigmoid.(Params["bq"] + (x_t * transpose(Params["Uq"]) + (h_prev * transpose(Params["Wq"])))
+   #compute signals
+   s_next = f_t * s_prev + g_t * e_t
+   h_next = q_t * tanh.(s_next)
+   cache = Dict([("s_prev",s_prev),("s_next",s_next),("x_t",x_t),
+   ("e_t",e_t),("f_t", f_t), ("g_t",g_t),("q_t",q_t),("h_prev",h_prev)])
+   return h_next, s_next, cache
 end
 
 function LSTMForwardPass()
