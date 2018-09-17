@@ -623,7 +623,18 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
    return h_next, s_next, cache
 end
 
-function LSTMForwardPass()
+function LSTMForwardPass(x,h_0,s_0,Params)
+   h = Dict()
+   h_prev = h_0
+   s_prev = s_0
+   cache_dict = Dict()
+   for i = 1:length(x)
+      h[i], s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
+      h_prev = h[i]
+      s_prev = s_next
+      cache_dict[i] = cache_step
+   end
+   return h,cache_dict
 end
 
 function LSTMBackwards()
