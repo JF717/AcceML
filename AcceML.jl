@@ -588,8 +588,25 @@ end
 
 ##### time to build an lstm RNN
 
-function initialiseLSTM(LayNeur,Forg,Peep)
-
+function initialiseLSTM(dimin,hiddim)
+   We = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
+   Wf = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
+   Wg = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
+   Wq = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
+#
+   be = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
+   bf = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
+   bg = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
+   bq = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
+#
+   Ue = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
+   Uf= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
+   Ug= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
+   Uq= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
+#
+   return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
+   ("be",be),("bf",bf),("bg",bg),("bq",bq),
+   ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),])
 end
 
 function LSTMForward()
