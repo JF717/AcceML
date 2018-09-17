@@ -700,8 +700,23 @@ function LSTMBackwardProp(dh, cache_dict, Params)
    return all_grads
 end
 
-function LSTMAfflineFW()
+function LSTMAfflineFW(h,U,b2)
+   N,T,Dh = size(h)
+   V = size(b2)[1]
+   th = reshape((reshape(h,(N*T),dh) * transpose(U) + b2),N,T,V)
+   y = Softmax.(th)
+   Cache = U,b2,h
+   return y, th, Cache
 end
 
-function LSTMAfflineBW()
+function LSTMAfflineBW(dth,y,cache)
+   U,b2,h = cache
+   
+   dth = SoftmaxDiff(th)
+   loss = NLL(th,y)
+   Losdif = NLLDiff(th,y)
+   dtheta = dot.(dth,Losdif)
+   dU = invdot(W,dtheta)
+   dh = transpose(dtheta) * h
+   return dtheta,dU,dh
 end
