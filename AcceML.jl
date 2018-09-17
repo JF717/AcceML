@@ -611,10 +611,10 @@ end
 
 function LSTMForward(x_t,h_prev,s_prev,Params)
    # compute gate values
-   e_t = Sigmoid.(Params["be"] + (x_t * transpose(Params["Ue"]) + (h_prev * transpose(Params["We"])))
-   f_t = Sigmoid.(Params["bf"] + (x_t * transpose(Params["Uf"]) + (h_prev * transpose(Params["Wf"])))
-   g_t = Sigmoid.(Params["bg"] + (x_t * transpose(Params["Ug"]) + (h_prev * transpose(Params["Wg"])))
-   q_t = Sigmoid.(Params["bq"] + (x_t * transpose(Params["Uq"]) + (h_prev * transpose(Params["Wq"])))
+   e_t = Sigmoid.(Params["be"] + (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
+   f_t = Sigmoid.(Params["bf"] + (x_t * transpose(Params["Uf"])) + (h_prev * transpose(Params["Wf"])))
+   g_t = Sigmoid.(Params["bg"] + (x_t * transpose(Params["Ug"])) + (h_prev * transpose(Params["Wg"])))
+   q_t = Sigmoid.(Params["bq"] + (x_t * transpose(Params["Uq"])) + (h_prev * transpose(Params["Wq"])))
    #compute signals
    s_next = f_t * s_prev + g_t * e_t
    h_next = q_t * tanh.(s_next)
@@ -637,10 +637,51 @@ function LSTMForwardPass(x,h_0,s_0,Params)
    return h,cache_dict
 end
 
-function LSTMBackwards()
+function LSTMBackwards(dh_next,ds_next,Cache,Params)
+   tanh_s = tanh.(cache["s_next"])
+   ds_next = dh_next * Cache["q_t"]*TanhDiff.(Cache["s_next"]) + ds_next
+   #forget gate f
+   df_step = ds_next * Cache["s_prev"]
+   dsigmoid_f = SigmoidDiff.(Cache["f_t"])
+   f_temp = df_step * dsigmoid_f
+   dUf_step = transpose(f_temp) * Cache["x_t"]
+   dWf_step = transpose(f_temp) * Cache["h_prev"]
+   dbf_step = sum(f_temp, dims = 0)
+   #Input gate g
+   dg_step = ds_next * Cache["e_t"]
+   dsigmoid_g = SigmoidDiff.(Cache["g_t"])
+   g_temp = dg_step * dsigmoid_g
+   dUg_step = transpose(g_temp) * Cache["x_t"]
+   dWg_step = transpose(g_temp) * Cache["h_prev"]
+   dbg_step = sum(g_temp, dims = 0)
+   #output gate q
+   dq_step = ds_next * tanh_s
+   dsigmoid_f = SigmoidDiff.(Cache["q_t"])
+   q_temp = dq_step * dsigmoid_q
+   dUq_step = transpose(q_temp) * Cache["x_t"]
+   dWq_step = transpose(q_temp) * Cache["h_prev"]
+   dbq_step = sum(q_temp, dims = 0)
+   #input transform e
+   de_step = ds_next * Cache["g_t"]
+   dsigmoid_e = SigmoidDiff.(Cache["e_t"])
+   e_temp = de_step * dsigmoid_e
+   dUe_step = transpose(e_temp) * Cache["x_t"]
+   dWe_step = transpose(e_temp) * Cache["h_prev"]
+   dbe_step = sum(e_temp, dims = 0)
+   #gradient w.r.t previous state h_prev
+   dh_prev = (dh_next * tanh_s * dsigmoid_q)* Params["Wq"] +
+   (ds_next*s_prev*dsigmoid_f) * Params["Wf"]+
+   (ds_next*g_t*dsigmoid_e) * Params["We"] +
+   (ds_next*e_t*dsigmoid_g) * Params["Wg"]
+   ds_prev = Cache["f_t"]*ds_next
+   grads = Dict([("We" , dWe_step), ("Wf" , dWf_step), ("Wg" , dWg_step), ("Wq", dWq_step),
+              ("Ue" , dUe_step), ("Uf" , dUf_step), ("Ug" , dUg_step), ("Uq" , dUq_step),
+              ("be" , dbe_step), ("bf" , dbf_step), ("bg" , dbg_step), ("bq" , dbq_step)])
+   return dh_prev, ds_prev, grads
 end
 
-function LSTMBackwardProp()
+function LSTMBackwardProp(dh, cache_dict, Params)
+
 end
 
 function LSTMAfflineFW()
