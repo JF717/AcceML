@@ -681,7 +681,23 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
 end
 
 function LSTMBackwardProp(dh, cache_dict, Params)
-
+   dh_next = zeros(size(Params[""]))
+   ds_next = zeros(size(Params[""]))
+   all_grads = Dict()
+   kys = collect(keys(Params))
+   for (n, f) in enumerate(kys)
+      all_grads[f] = 0
+   end
+   for i = length(dh):1:-1
+      dh_next = dh[i-1]
+      dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
+      dh_next = dh_prev
+      ds_next = ds_prev
+      for k in enumerate(kys)
+         all_grads[k] = all_grads[k] + step_grads[k]
+      end
+   end
+   return all_grads
 end
 
 function LSTMAfflineFW()
