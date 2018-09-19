@@ -192,8 +192,10 @@ end
 
 function SoftmaxDiff(x)
    y = zeros(length(x),length(x))
+   counter = 1
    for i = diagind(y)
-   y[i] = x[Int(round(i/length(x)+0.1))]
+   y[i] = x[counter]
+   counter += 1
    end
    for i = 1:size(y)[1]
       for j = 1:size(y)[1]
@@ -331,7 +333,7 @@ function Hinge2(x,y,m = 1)
 end
 
 
-function NLL(x)
+function NLL(x,y)
    for i = 1:length(x)
       if y[i] == 1
          return -log(x[i])
@@ -347,9 +349,9 @@ end
 function NLLDiff(x,y)
    z = []
    for i = 1:length(x)
-      push!(z, -1/x[i])
+      push!(z, y[i] * -1/x[i])
    end
-   return z
+   return sum(z)
 end
 
 function xent(x,y)
@@ -722,11 +724,21 @@ function LSTMAfflineFW(h,U,b2)
    return theta,y, Cache
 end
 
-function LSTMAfflineBW(theta,y,Cache)
+function LSTMAfflineBW(theta,y,yt,Cache)
    U,b2,h = Cache
-   dth = SoftmaxDiff(th)
-   loss = NLL(th,y)
-   Losdif = NLLDiff(th,y)
+   a,b,c = size(theta)
+   sdth = zeros(b,b,c)
+   loss = zeros(1,1,c)
+   Losdif= zeros(a,b,c)
+   for i = 1:size(theta)[3]
+      sdth[:,:,i] = SoftmaxDiff(theta[:,:,i])
+      loss[:,:,i] = NLL(y[:,:,i],yt[:,:,i])
+      Losdif[:,:,i] = transpose(NLLDiff(y[:,:,i],yt[:,:,i]))
+      dtheta[:,:,i] = Losdif[:,:,i] * sdth[:,:,i]
+      dU[:,:,i] = dot.(dtheta[:,:,i],U)
+   end
+   loss = NLL(y,yt)
+   Losdif = NLLDiff(y,yt)
    dtheta = dot.(dth,Losdif)
    dU = invdot(U,dtheta)
    dh = transpose(dtheta) * h
