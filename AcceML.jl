@@ -588,27 +588,27 @@ end
 
 ##### time to build an lstm RNN
 
-function initialiseLSTM(inlen,dimin,hiddim,Numclas)
-   We = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
-   Wf = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
-   Wg = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
-   Wq = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
+function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass)
+   We = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
+   Wf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
+   Wg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
+   Wq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
 #
-   be = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
-   bf = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
-   bg = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
-   bq = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
+   be = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
+   bf = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
+   bg = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
+   bq = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
 #
-   Ue = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
-   Uf= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
-   Ug= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
-   Uq= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
+   Ue = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
+   Uf=reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
+   Ug= reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
+   Uq= reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
 #
-   h_0 = zeros(inlen,hiddim)
-   s_0 = zeros(inlen,hiddim)
+   h_0 = zeros(1,sizehiddenlayer)
+   s_0 = zeros(1,sizehiddenlayer)
    #
-   U = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(Numclas * hiddim)),Numclas,hiddim)
-   b2 = rand(Uniform(-1/sqrt(Numclas),1/sqrt(Numclas)),Numclas)
+   U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)),numberofclass,sizehiddenlayer)
+   b2 = rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),numberofclass)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
@@ -617,8 +617,8 @@ end
 
 function LSTMForward(x_t,h_prev,s_prev,Params)
    # compute gate values
-   e_t = Sigmoid.(Params["be"] .+ (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
    f_t = Sigmoid.(Params["bf"] .+ (x_t * transpose(Params["Uf"])) + (h_prev * transpose(Params["Wf"])))
+   e_t = tanh.(Params["be"] .+ (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
    g_t = Sigmoid.(Params["bg"] .+ (x_t * transpose(Params["Ug"])) + (h_prev * transpose(Params["Wg"])))
    q_t = Sigmoid.(Params["bq"] .+ (x_t * transpose(Params["Uq"])) + (h_prev * transpose(Params["Wq"])))
    #compute signals
@@ -629,14 +629,14 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
    return h_next, s_next, cache
 end
 
-function LSTMForwardPass(x,Params)
-   h = zeros(length(x),size(x)[2],3)
+function LSTMForwardPass(x,Params,minibatch)
+   h = zeros(size(Params["h_0"])[1],size(Params["h_0"])[2],minibatch)
    h_prev = Params["h_0"]
    s_prev = Params["s_0"]
    cache_dict = Dict()
-   for i = 1:size(x)[2]
+   for i = 1:size(x)[3]
       h_temp, s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
-      push!(h,h_temp)
+      h[:,:,i] = h_temp
       h_prev = h[i]
       s_prev = s_next
       cache_dict[i] = cache_step
