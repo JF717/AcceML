@@ -608,7 +608,7 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass)
    s_0 = zeros(1,sizehiddenlayer)
    #
    U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)),numberofclass,sizehiddenlayer)
-   b2 = rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),numberofclass)
+   b2 = rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),1,numberofclass)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
@@ -629,15 +629,17 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
    return h_next, s_next, cache
 end
 
-function LSTMForwardPass(x,Params,minibatch)
-   h = zeros(size(Params["h_0"])[1],size(Params["h_0"])[2],minibatch)
+function LSTMForwardPass(x,Params)
+   a,b = size(Params["h_0"])
+   c = size(x)[3]
+   h = zeros(a,b,c)
    h_prev = Params["h_0"]
    s_prev = Params["s_0"]
    cache_dict = Dict()
-   for i = 1:size(x)[3]
-      h_temp, s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
+   for i = 1:c
+      h_temp, s_next,cache_step = LSTMForward(x[:,:,i],h_prev,s_prev,Params)
       h[:,:,i] = h_temp
-      h_prev = h[i]
+      h_prev = h[:,:,i]
       s_prev = s_next
       cache_dict[i] = cache_step
    end
@@ -708,16 +710,20 @@ function LSTMBackwardProp(dh, cache_dict, Params)
 end
 
 function LSTMAfflineFW(h,U,b2)
-   N,T,Dh = size(h)
-   V = size(b2)[1]
-   th = reshape((reshape(h,(N*T),dh) * transpose(U) + b2),N,T,V)
-   y = Softmax(th)
+   a,b,c = size(h)
+   d = size(b2)[2]
+   theta = zeros(a,d,c)
+   y = zeros(a,d,c)
+   for i = 1:c
+      theta[:,:,i] = (h[:,:,i] * transpose(U)) + b2
+      y[:,:,i] = Softmax(theta[:,:,i])
+   end
    Cache = U,b2,h
-   return y, th, Cache
+   return theta,y, Cache
 end
 
-function LSTMAfflineBW(th,y,cache)
-   U,b2,h = cache
+function LSTMAfflineBW(theta,y,Cache)
+   U,b2,h = Cache
    dth = SoftmaxDiff(th)
    loss = NLL(th,y)
    Losdif = NLLDiff(th,y)
