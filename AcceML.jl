@@ -588,48 +588,55 @@ end
 
 ##### time to build an lstm RNN
 
-function initialiseLSTM(dimin,hiddim)
+function initialiseLSTM(inlen,dimin,hiddim,Numclas)
    We = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
    Wf = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
    Wg = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
    Wq = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,hiddim)
 #
-   be = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
-   bf = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
-   bg = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
-   bq = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),hiddim)
+   be = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
+   bf = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
+   bg = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
+   bq = rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),1,hiddim)
 #
-   Ue = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
-   Uf= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
-   Ug= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
-   Uq= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * hiddim)),hiddim,dimin)
+   Ue = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
+   Uf= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
+   Ug= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
+   Uq= reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(hiddim * dimin)),hiddim,dimin)
+#
+   h_0 = zeros(inlen,hiddim)
+   s_0 = zeros(inlen,hiddim)
+   #
+   U = reshape(rand(Uniform(-1/sqrt(hiddim),1/sqrt(hiddim)),(Numclas * hiddim)),Numclas,hiddim)
+   b2 = rand(Uniform(-1/sqrt(Numclas),1/sqrt(Numclas)),Numclas)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
-   ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),])
+   ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),("h_0", h_0),("s_0",s_0),("U",U),("b2",b2)])
 end
 
 function LSTMForward(x_t,h_prev,s_prev,Params)
    # compute gate values
-   e_t = Sigmoid.(Params["be"] + (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
-   f_t = Sigmoid.(Params["bf"] + (x_t * transpose(Params["Uf"])) + (h_prev * transpose(Params["Wf"])))
-   g_t = Sigmoid.(Params["bg"] + (x_t * transpose(Params["Ug"])) + (h_prev * transpose(Params["Wg"])))
-   q_t = Sigmoid.(Params["bq"] + (x_t * transpose(Params["Uq"])) + (h_prev * transpose(Params["Wq"])))
+   e_t = Sigmoid.(Params["be"] .+ (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
+   f_t = Sigmoid.(Params["bf"] .+ (x_t * transpose(Params["Uf"])) + (h_prev * transpose(Params["Wf"])))
+   g_t = Sigmoid.(Params["bg"] .+ (x_t * transpose(Params["Ug"])) + (h_prev * transpose(Params["Wg"])))
+   q_t = Sigmoid.(Params["bq"] .+ (x_t * transpose(Params["Uq"])) + (h_prev * transpose(Params["Wq"])))
    #compute signals
-   s_next = f_t * s_prev + g_t * e_t
-   h_next = q_t * tanh.(s_next)
+   s_next = dot.(f_t,s_prev) + dot.(g_t,e_t)
+   h_next = dot.(q_t, tanh.(s_next))
    cache = Dict([("s_prev",s_prev),("s_next",s_next),("x_t",x_t),
    ("e_t",e_t),("f_t", f_t), ("g_t",g_t),("q_t",q_t),("h_prev",h_prev)])
    return h_next, s_next, cache
 end
 
-function LSTMForwardPass(x,h_0,s_0,Params)
-   h = Dict()
-   h_prev = h_0
-   s_prev = s_0
+function LSTMForwardPass(x,Params)
+   h = zeros(length(x),size(x)[2],3)
+   h_prev = Params["h_0"]
+   s_prev = Params["s_0"]
    cache_dict = Dict()
-   for i = 1:length(x)
-      h[i], s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
+   for i = 1:size(x)[2]
+      h_temp, s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
+      push!(h,h_temp)
       h_prev = h[i]
       s_prev = s_next
       cache_dict[i] = cache_step
@@ -694,7 +701,7 @@ function LSTMBackwardProp(dh, cache_dict, Params)
       dh_next = dh_prev
       ds_next = ds_prev
       for k in enumerate(kys)
-         all_grads[k] = all_grads[k] + step_grads[k]
+         all_grads[k] = -(all_grads[k] + step_grads[k])
       end
    end
    return all_grads
@@ -704,19 +711,52 @@ function LSTMAfflineFW(h,U,b2)
    N,T,Dh = size(h)
    V = size(b2)[1]
    th = reshape((reshape(h,(N*T),dh) * transpose(U) + b2),N,T,V)
-   y = Softmax.(th)
+   y = Softmax(th)
    Cache = U,b2,h
    return y, th, Cache
 end
 
-function LSTMAfflineBW(dth,y,cache)
+function LSTMAfflineBW(th,y,cache)
    U,b2,h = cache
-   
    dth = SoftmaxDiff(th)
    loss = NLL(th,y)
    Losdif = NLLDiff(th,y)
    dtheta = dot.(dth,Losdif)
-   dU = invdot(W,dtheta)
+   dU = invdot(U,dtheta)
    dh = transpose(dtheta) * h
-   return dtheta,dU,dh
+   db2 = sum(dtheta, dims = 0)
+   return dtheta,dU,dh,db2,loss
+end
+
+function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
+   Params = initialiseLSTM(Inputdat[],InputDat[],hiddim,Numclas)
+   counter = 1
+   for i=1:length(InputDat):batchlen
+      counter += 1
+      Fwh,Fwcache = LSTMForwardPass(InputDat[i:i+10],Params)
+      Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
+      dtheta,dU,dh,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
+      all_grads = LSTMBackwardProp(dh,Fwcache,Params)
+      all_grads["U"] = -dU
+      all_grads["b2"] = -db2
+      Params = Merge(counter(Params),counter( all_grads))
+      if counter == Report
+         print(string("Loss is",loss))
+         counter = 1
+      end
+   end
+   return Params
+end
+
+function RunLSTM(InputDat,hiddim,batchlen,Numclas)
+   Params = initialiseLSTM(Inputdat[],InputDat[],hiddim,Numclas)
+   classedDat = InputDat
+   for i=1:length(InputDat):batchlen
+      Fwh,Fwcache = LSTMForwardPass(InputDat[i:i+batchlen],Params)
+      Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
+      for j = i:batchlen
+         push!(classedDat[j],argmax(Clas)[2])
+      end
+   end
+   return classedDat
 end
