@@ -650,41 +650,41 @@ end
 
 function LSTMBackwards(dh_next,ds_next,Cache,Params)
    tanh_s = tanh.(cache["s_next"])
-   ds_next = dh_next * Cache["q_t"]*TanhDiff.(Cache["s_next"]) + ds_next
+   ds_next = dot.((dot.(dh_next, Cache["q_t"])),TanhDiff.(Cache["s_next"])) + ds_next
    #forget gate f
-   df_step = ds_next * Cache["s_prev"]
+   df_step = dot.(ds_next, Cache["s_prev"])
    dsigmoid_f = SigmoidDiff.(Cache["f_t"])
-   f_temp = df_step * dsigmoid_f
+   f_temp = dot.(df_step,dsigmoid_f)
    dUf_step = transpose(f_temp) * Cache["x_t"]
    dWf_step = transpose(f_temp) * Cache["h_prev"]
-   dbf_step = sum(f_temp, dims = 0)
+   dbf_step =  transpose(repeat([sum(f_temp)],size(f_temp)[2]))
    #Input gate g
-   dg_step = ds_next * Cache["e_t"]
+   dg_step = dot.(ds_next, Cache["e_t"])
    dsigmoid_g = SigmoidDiff.(Cache["g_t"])
-   g_temp = dg_step * dsigmoid_g
+   g_temp = dot.(dg_step, dsigmoid_g)
    dUg_step = transpose(g_temp) * Cache["x_t"]
    dWg_step = transpose(g_temp) * Cache["h_prev"]
-   dbg_step = sum(g_temp, dims = 0)
+   dbg_step =  transpose(repeat([sum(g_temp)],size(g_temp)[2]))
    #output gate q
-   dq_step = ds_next * tanh_s
-   dsigmoid_f = SigmoidDiff.(Cache["q_t"])
-   q_temp = dq_step * dsigmoid_q
+   dq_step = dot.(ds_next, tanh_s)
+   dsigmoid_q = SigmoidDiff.(Cache["q_t"])
+   q_temp = dot.(dq_step, dsigmoid_q)
    dUq_step = transpose(q_temp) * Cache["x_t"]
    dWq_step = transpose(q_temp) * Cache["h_prev"]
-   dbq_step = sum(q_temp, dims = 0)
+   dbq_step = transpose(repeat([sum(q_temp)],size(q_temp)[2]))
    #input transform e
-   de_step = ds_next * Cache["g_t"]
+   de_step = dot.(ds_next, Cache["g_t"])
    dsigmoid_e = SigmoidDiff.(Cache["e_t"])
-   e_temp = de_step * dsigmoid_e
+   e_temp = dot.(de_step, dsigmoid_e)
    dUe_step = transpose(e_temp) * Cache["x_t"]
    dWe_step = transpose(e_temp) * Cache["h_prev"]
-   dbe_step = sum(e_temp, dims = 0)
+   dbe_step =  transpose(repeat([sum(e_temp)],size(e_temp)[2]))
    #gradient w.r.t previous state h_prev
-   dh_prev = (dh_next * tanh_s * dsigmoid_q)* Params["Wq"] +
-   (ds_next*s_prev*dsigmoid_f) * Params["Wf"]+
-   (ds_next*g_t*dsigmoid_e) * Params["We"] +
-   (ds_next*e_t*dsigmoid_g) * Params["Wg"]
-   ds_prev = Cache["f_t"]*ds_next
+   dh_prev = dot.(dh_next, dot.(tanh_s, dsigmoid_q))* Params["Wq"] +
+   dot.(ds_next,dot.(s_prev,dsigmoid_f)) * Params["Wf"]+
+   dot.(ds_next,dot.(g_t,dsigmoid_e)) * Params["We"] +
+   dot.(ds_next,dot.(e_t,dsigmoid_g)) * Params["Wg"]
+   ds_prev = dot.(Cache["f_t"],ds_next)
    grads = Dict([("We" , dWe_step), ("Wf" , dWf_step), ("Wg" , dWg_step), ("Wq", dWq_step),
               ("Ue" , dUe_step), ("Uf" , dUf_step), ("Ug" , dUg_step), ("Uq" , dUq_step),
               ("be" , dbe_step), ("bf" , dbf_step), ("bg" , dbg_step), ("bq" , dbq_step)])
@@ -692,20 +692,22 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
 end
 
 function LSTMBackwardProp(dh, cache_dict, Params)
-   a,b,c = size(dtheta)
+   a,b,c = size(dh)
    dh_next = zeros(a,b)
    ds_next = zeros(a,b)
    all_grads = Dict()
    kys = collect(keys(Params))
+   kys = filter!(e->e∉["s_0","h_0","U","b2"],kys)
    for (n, f) in enumerate(kys)
-      all_grads[f] = 0
+      a,b = size(Params[f])
+      all_grads[f] = zeros(a,b)
    end
    for i = length(dh):1:-1
       dh_next = dh[:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
       ds_next = ds_prev
-      for k in enumerate(kys)
+      for (n, k) in enumerate(kys)
          all_grads[k] = -(all_grads[k] + step_grads[k])
       end
    end
@@ -738,7 +740,7 @@ function LSTMAfflineBW(theta,y,yt,Cache)
       push!(loss,NLL(y[:,:,i],yt[:,:,i]))
       Losdif[:,:,i] = transpose(NLLDiff(y[:,:,i],yt[:,:,i]))
       dtheta[:,:,i] = Losdif[:,:,i] * sdth[:,:,i]
-      dh = dtheta[:,:,i] * U
+      dh[:,:,i] = dtheta[:,:,i] * U
       dU[:,:,i] =  transpose(dtheta[:,:,i]) * dh
    end
    db2 = sum(dtheta, dims = 0)
