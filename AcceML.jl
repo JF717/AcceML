@@ -702,7 +702,7 @@ function LSTMBackwardProp(dh, cache_dict, Params)
       a,b = size(Params[f])
       all_grads[f] = zeros(a,b)
    end
-   for i = length(dh):1:-1
+   for i = c:-1:2
       dh_next = dh[:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
@@ -743,22 +743,25 @@ function LSTMAfflineBW(theta,y,yt,Cache)
       dh[:,:,i] = dtheta[:,:,i] * U
       dU[:,:,i] =  transpose(dtheta[:,:,i]) * dh
    end
-   db2 = sum(dtheta, dims = 0)
+   db2 = repeat([-sum(dtheta)],size(dtheta)[2],1)
    return dtheta,dh,dU,db2,loss
 end
 
 function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
-   Params = initialiseLSTM(Inputdat[],InputDat[],hiddim,Numclas)
+   Params = initialiseLSTM(size(Inputdat)[1],hiddim,Numclas)
    counter = 1
-   for i=1:length(InputDat):batchlen
+   for i=1:batchlen:length(InputDat)
       counter += 1
-      Fwh,Fwcache = LSTMForwardPass(InputDat[i:i+10],Params)
+      Fwh,Fwcache = LSTMForwardPass(InputDat[:,(i:i+batchlen)],Params)
       Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-      dtheta,dU,dh,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
+      dtheta,dh,dU,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
       all_grads = LSTMBackwardProp(dh,Fwcache,Params)
       all_grads["U"] = -dU
-      all_grads["b2"] = -db2
-      Params = Merge(counter(Params),counter( all_grads))
+      all_grads["b2"] = db2
+      kys = collect(keys(all_grads))
+      for (n, k) in enumerate(kys)
+         Params[k] = (Params[k] + all_grads[k])
+      end
       if counter == Report
          print(string("Loss is",loss))
          counter = 1
@@ -768,7 +771,7 @@ function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
 end
 
 function RunLSTM(InputDat,hiddim,batchlen,Numclas)
-   Params = initialiseLSTM(Inputdat[],InputDat[],hiddim,Numclas)
+   Params = initialiseLSTM(size(Inputdat)[1],hiddim,Numclas)
    classedDat = InputDat
    for i=1:length(InputDat):batchlen
       Fwh,Fwcache = LSTMForwardPass(InputDat[i:i+batchlen],Params)
