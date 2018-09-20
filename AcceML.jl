@@ -735,15 +735,10 @@ function LSTMAfflineBW(theta,y,yt,Cache)
       loss[:,:,i] = NLL(y[:,:,i],yt[:,:,i])
       Losdif[:,:,i] = transpose(NLLDiff(y[:,:,i],yt[:,:,i]))
       dtheta[:,:,i] = Losdif[:,:,i] * sdth[:,:,i]
-      dU[:,:,i] = dot.(dtheta[:,:,i],U)
+      dU[:,:,i] = dot.(transpose(dtheta[:,:,i]),U)
    end
-   loss = NLL(y,yt)
-   Losdif = NLLDiff(y,yt)
-   dtheta = dot.(dth,Losdif)
-   dU = invdot(U,dtheta)
-   dh = transpose(dtheta) * h
    db2 = sum(dtheta, dims = 0)
-   return dtheta,dU,dh,db2,loss
+   return dtheta,dU,db2,loss
 end
 
 function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
