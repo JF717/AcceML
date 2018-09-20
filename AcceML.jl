@@ -692,15 +692,16 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
 end
 
 function LSTMBackwardProp(dh, cache_dict, Params)
-   dh_next = zeros(size(Params[""]))
-   ds_next = zeros(size(Params[""]))
+   a,b,c = size(dtheta)
+   dh_next = zeros(a,b)
+   ds_next = zeros(a,b)
    all_grads = Dict()
    kys = collect(keys(Params))
    for (n, f) in enumerate(kys)
       all_grads[f] = 0
    end
    for i = length(dh):1:-1
-      dh_next = dh[i-1]
+      dh_next = dh[:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
       ds_next = ds_prev
@@ -728,17 +729,20 @@ function LSTMAfflineBW(theta,y,yt,Cache)
    U,b2,h = Cache
    a,b,c = size(theta)
    sdth = zeros(b,b,c)
-   loss = zeros(1,1,c)
+   loss = []
    Losdif= zeros(a,b,c)
+   dthetah = zeros(a,b,c)
+   dU = zeros(size(U)[1],size(U)[2],c)
    for i = 1:size(theta)[3]
       sdth[:,:,i] = SoftmaxDiff(theta[:,:,i])
-      loss[:,:,i] = NLL(y[:,:,i],yt[:,:,i])
+      push!(loss,NLL(y[:,:,i],yt[:,:,i]))
       Losdif[:,:,i] = transpose(NLLDiff(y[:,:,i],yt[:,:,i]))
       dtheta[:,:,i] = Losdif[:,:,i] * sdth[:,:,i]
-      dU[:,:,i] = dot.(transpose(dtheta[:,:,i]),U)
+      dh = dtheta[:,:,i] * U
+      dU[:,:,i] =  transpose(dtheta[:,:,i]) * dh
    end
    db2 = sum(dtheta, dims = 0)
-   return dtheta,dU,db2,loss
+   return dtheta,dh,dU,db2,loss
 end
 
 function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
