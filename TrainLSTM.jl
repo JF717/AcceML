@@ -1,3 +1,3 @@
 TrainingData = CSV.read("TrainingData.csv";header = true, delim = ",")
 
-temp = CreateTraining(TrainingData,features,correct)
+temp,clas = CreateTraining(TrainingData,100,features,correct)

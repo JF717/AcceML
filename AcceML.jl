@@ -52,6 +52,7 @@ end
 function CreateTraining(Data,TSlen,features,correct)
    TrainDat = Dict()
    counter = 1
+   Classifiers = convert(Array,unique(Data[correct]))
    for i = 1:TSlen:nrow(Data)
       curdat = []
       for j = 1:length(features)
@@ -62,13 +63,15 @@ function CreateTraining(Data,TSlen,features,correct)
       counter +=1
    end
    for i = 1:length(TrainDat)
-
+      Corary = zeros(1,length(Classifiers))
+      Corary[findall(Classifiers .== TrainDat[i][2][1])[1][1]] = 1
+      TrainDat[i][2] = Corary
    end
-   return(TrainDat)
+   return(TrainDat,Classifiers)
 end
 
-function BootstrapDat(TrainingData)
-
+function BootstrapDat(TrainingData,minibatch,TSlen)
+   
 end
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
