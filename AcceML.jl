@@ -4,10 +4,6 @@ using CSV
 using DataFrames
 using Distributions
 using LinearAlgebra
-
-#Collar2 = CSV.read("Collar2AccelCor.csv"; header = true, delim = ",")
-#Collar2 = Collar2[:,2:6]
-
 # If your data is not in Neural Network format this will transpose data into input arrays of whatever size you want
 #Input data must be in format Date Time X Y Z
 #Becomes Date Time x1:xn y1:yn z1:1n n = number of input neurones
@@ -49,6 +45,30 @@ function TransposeAccel(Data, Windows, Hz)
    TransposedWindows[j] = string("Window",Windows[j]) => Transobj
    end
    return TransposedWindows
+end
+
+#function to take labeled training data csv and produce
+#the training data required for the LSTM
+function CreateTraining(Data,TSlen,features,correct)
+   TrainDat = Dict()
+   counter = 1
+   for i = 1:TSlen:nrow(Data)
+      curdat = []
+      for j = 1:length(features)
+          push!(curdat,Data[i:i+(TSlen-1),features[j]])
+      end
+      Class = convert(Array,Data[i,correct])
+      TrainDat[counter] = [curdat,Class]
+      counter +=1
+   end
+   for i = 1:length(TrainDat)
+
+   end
+   return(TrainDat)
+end
+
+function BootstrapDat(TrainingData)
+
 end
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
