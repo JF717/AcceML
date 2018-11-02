@@ -437,6 +437,8 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
       s_next = push!(s_next,dot.(f_t[i],s_prev[i]) + dot.(g_t[i],e_t[i]))
       h_next = push!(h_next,dot.(q_t[i], tanh.(s_next[i])))
    end
+   s_next = reshape(s_next,1,:,dims)
+   h_next = reshape(h_next,1,:,dims)
    cache = Dict([("s_prev",s_prev),("s_next",s_next),("x_t",x_t),
    ("e_t",e_t),("f_t", f_t), ("g_t",g_t),("q_t",q_t),("h_prev",h_prev)])
    return h_next, s_next, cache
@@ -445,14 +447,16 @@ end
 function LSTMForwardPass(x,Params)
    a,b,d = size(Params["h_0"])
    c = size(x)[1]
-   h = zeros(a,b,c)
+   h = zeros(a,b,d,c)
    h_prev = Params["h_0"]
    s_prev = Params["s_0"]
    cache_dict = Dict()
    for i = 1:c
       h_temp, s_next,cache_step = LSTMForward(x[i],h_prev,s_prev,Params)
-      h[:,:,i] = h_temp
-      h_prev = h[:,:,i]
+      for j in 1:d
+         h[:,:,j,i] = h_temp[j]
+      end
+      h_prev = h[:,:,:,i]
       s_prev = s_next
       cache_dict[i] = cache_step
    end
@@ -526,16 +530,26 @@ function LSTMBackwardProp(dh, cache_dict, Params)
 end
 
 function LSTMAfflineFW(h,U,b2)
-   a,b,c = size(h)
-   d = size(b2)[2]
-   theta = zeros(a,d,c)
-   y = zeros(a,d,c)
-   for i = 1:c
-      theta[:,:,i] = (h[:,:,i] * transpose(U)) + b2
-      y[:,:,i] = Softmax(theta[:,:,i])
+   a,b,c,d = size(h)
+   e = size(b2)[2]
+   theta = zeros(a,e,c,d)
+   y = zeros(a,e,c,d)
+   ypred = []
+   for i = 1:d
+      for j = 1:c
+         theta[:,:,j,i] = (h[:,:,j,i] * transpose(U[:,:,j])) + b2[:,:,j]
+         y[:,:,j,i] = Softmax(theta[:,:,j,i])
+      end
+      for z = 1:e
+         y3 = []
+         for j = 1:c
+         y3 = push!(y3,y[:,:,j,:][z])
+         end
+         ypred = push!(ypred,mean(y3))
+      end
    end
    Cache = U,b2,h
-   return theta,y, Cache
+   return theta,y, Cache,ypred
 end
 
 function LSTMAfflineBW(theta,y,yt,Cache)
