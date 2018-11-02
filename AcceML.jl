@@ -4,6 +4,7 @@ using CSV
 using DataFrames
 using Distributions
 using LinearAlgebra
+using Random
 # If your data is not in Neural Network format this will transpose data into input arrays of whatever size you want
 #Input data must be in format Date Time X Y Z
 #Becomes Date Time x1:xn y1:yn z1:1n n = number of input neurones
@@ -70,8 +71,13 @@ function CreateTraining(Data,TSlen,features,correct)
    return(TrainDat,Classifiers)
 end
 
-function BootstrapDat(TrainingData,minibatch,TSlen)
-   
+
+function BootstrapDat(TrainDat,minibatch,TSlen)
+   KeyOrder = collect(1:length(TrainDat))
+   KeyOrder = reshape(KeyOrder,minibatch,:)
+   KeyOrder = transpose(KeyOrder)
+   SampleOrder = KeyOrder[randperm(end),:]
+   return(SampleOrder)
 end
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
