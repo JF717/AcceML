@@ -534,22 +534,33 @@ function LSTMAfflineFW(h,U,b2)
    e = size(b2)[2]
    theta = zeros(a,e,c,d)
    y = zeros(a,e,c,d)
-   ypred = []
+   pred = zeros(a,e,d)
    for i = 1:d
       for j = 1:c
          theta[:,:,j,i] = (h[:,:,j,i] * transpose(U[:,:,j])) + b2[:,:,j]
          y[:,:,j,i] = Softmax(theta[:,:,j,i])
       end
+   end
+   for i = 1:d
+      ypred = []
+      #print("\n",ypred)
       for z = 1:e
          y3 = []
+         print("\n",z)
          for j = 1:c
-         y3 = push!(y3,y[:,:,j,:][z])
+            y3 = push!(y3,y[:,:,j,i][z])
+            print("\n",y[:,:,j,i][z])
          end
+         #print("\n", mean(y3))
          ypred = push!(ypred,mean(y3))
+         #print("\n",ypred)
       end
+      #print("\n",ypred)
+      pred[:,:,i] = ypred
+      #print("\n",pred)
    end
    Cache = U,b2,h
-   return theta,y, Cache,ypred
+   return theta,y, Cache,pred
 end
 
 function LSTMAfflineBW(theta,y,yt,Cache)
