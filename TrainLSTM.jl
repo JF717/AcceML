@@ -7,3 +7,7 @@ for i = 600:600:nrow(TrainingData)-
         push!(incor,i)
     end
 end
+
+p = initialiseLSTM(100,400,5,3)
+
+h1,s1,c1 = LSTMForward(x_t,Params["h_0"],Params["s_0"],Params)
