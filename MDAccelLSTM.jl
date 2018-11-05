@@ -543,7 +543,6 @@ function LSTMAfflineFW(h,U,b2)
    end
    for i = 1:d
       ypred = []
-      #print("\n",ypred)
       for z = 1:e
          y3 = []
          print("\n",z)
@@ -551,13 +550,9 @@ function LSTMAfflineFW(h,U,b2)
             y3 = push!(y3,y[:,:,j,i][z])
             print("\n",y[:,:,j,i][z])
          end
-         #print("\n", mean(y3))
          ypred = push!(ypred,mean(y3))
-         #print("\n",ypred)
       end
-      #print("\n",ypred)
       pred[:,:,i] = ypred
-      #print("\n",pred)
    end
    Cache = U,b2,h
    return theta,y, Cache,pred
@@ -591,12 +586,21 @@ function CreateDataArray(Order,dict)
    return Data
 end
 
+function CreateCorrectArray(Order,dict)
+   Data = []
+   for i in Order
+      push!(Data,dict[i][2])
+   end
+   return Data
+end
+
 function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,Report = -1,features,iter)
    Params = initialiseLSTM(TSlen,hiddim,Numclas,features)
    counter = 1
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
+      Correct = CreateCorrectArray(CurrentOrder,InputDat)
       for i = 1:length(Data)
          counter += 1
          Fwh,Fwcache = LSTMForwardPass(Data[1:batchlen],Params)
