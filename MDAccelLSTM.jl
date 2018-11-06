@@ -631,34 +631,39 @@ function CreateCorrectArray(Order,dict)
    return Data
 end
 
-function RightWrong(pred,Correct,Right,Wrong)
+function RightWrong(pred,Correct,TP,TN,FP,FN)
    for i = 1:length(Correct)
       predc = findmax(pred[:,:,i])[2][2]
       truc = findmax(Correct[i])[2][2]
       if predc == truc
-         Right += 1
+         TP += 1
+         TN += (length(Correct)-1)
       else
-         Wrong += 1
+         FP += 1
+         FN += 1
+         TN += (length(Correct)-2)
       end
    end
-   return Right, Wrong
+   return TP, TN, FP, FN
 end
 
 
-function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,Report = -1,features,iter)
+function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter)
    Params = initialiseLSTM(TSlen,hiddim,Numclas,features)
-   counter = 1
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
-      Right = 0
-      Wrong = 0
+      TP = 0
+      TN = 0
+      FP = 0
+      FN = 0
+      counter = 1
       for j = 1:batchlen:length(Data)
          counter += 1
          Fwh,Fwcache = LSTMForwardPass(Data[j:batchlen],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         Right, Wrong = RightWrong(preds,Correct[j:batchlen],Right,Wrong)
+         TP, TN, FP, FN = RightWrong(preds,Correct[j:batchlen],TP,TN,FP,FN)
          dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:batchlen],Afcache)
          all_grads = LSTMBackwardProp(dh,Fwcache,Params)
          all_grads["U"] = -dU
@@ -669,9 +674,10 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,Report = -1,features,i
                Params[k][x] = (Params[k][x] + all_grads[k][x])
             end
          end
-         if counter == Report
-            print(string("Loss is",loss))
-            counter = 1
+         if counter == length(Data)
+            print("\n","Iteration ", i, " Accuracy is ",(TP+TN)/(TP +TN + FP +FN),
+            " Precision is ",(TP)/(TP + FP),
+            " Recall is ", TP/TP + FN)
          end
       end
    end
