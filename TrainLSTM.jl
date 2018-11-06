@@ -7,7 +7,7 @@ for i = 600:600:nrow(TrainingData)
         push!(incor,i)
     end
 end
-Params = initialiseLSTM(100,400,5,3)
+Params = initialiseLSTM(100,100,5,3)
 
 CurrentOrder = BootstrapDat(TData,6,100)
 Data = CreateDataArray(CurrentOrder,TData)
@@ -15,8 +15,18 @@ Correct = CreateCorrectArray(CurrentOrder,TData)
 Fwh,Fwcache = LSTMForwardPass(Data[1:6],Params)
 the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
 TP, TN, FP, FN = RightWrong(preds,Correct[1:6],TP,TN,FP,FN)
-dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[1:6],Afcache)
+dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[13:18],Afcache)
 all_grads = LSTMBackwardProp(dh,Fwcache,Params)
+all_grads["U"] = -dU
+all_grads["b2"] = db2
+kys = collect(keys(all_grads))
+for (n, k) in enumerate(kys)
+    for x = 1:length(features)
+        Params[k][:,:,x] = (Params[k][:,:,x] + LR * all_grads[k][:,:,x])
+    end
+end
 
 
-TrainedModel = TrainLSTM(TData,100,100,6,5,[6,7,8],10,0.1)
+
+
+TrainedModel = TrainLSTM(TData,100,100,6,5,[6,7,8],1,1)

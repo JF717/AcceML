@@ -8,46 +8,6 @@ using Random
 # If your data is not in Neural Network format this will transpose data into input arrays of whatever size you want
 #Input data must be in format Date Time X Y Z
 #Becomes Date Time x1:xn y1:yn z1:1n n = number of input neurones
-function TransposeAccel(Data, Windows, Hz)
- obj = Data
- TransposedWindows = Dict()
- for j = 1:length(Windows)
- curtim = Windows[j] * Hz
- Transobj = Any[]
- dat = []
- tim = []
- x = []
- y = []
- z = []
- test = obj[:,3]
- for i = range(1; stop =  (nrow(obj)), step = curtim)
-   dat = obj[i,1]
-   tim = string(obj[i,2],"-", obj[i+(curtim - 1),2])
-   x =  obj[i:(i+(curtim -1)),3]
-   y = obj[i:(i+(curtim -1)),4]
-   z = obj[i:(i+(curtim -1)),5]
-   tempdata = Any[]
-   push!(tempdata,dat)
-   push!(tempdata,tim)
-   for i = 1:length(x)
-      push!(tempdata,x[i])
-   end
-   for i = 1:length(y)
-      push!(tempdata,y[i])
-   end
-   for i = 1:length(z)
-      push!(tempdata,z[i])
-   end
-   push!(Transobj,tempdata)
-   if (i + (2* curtim) - 1) > nrow(obj)
-      break
-   end
-   end
-   TransposedWindows[j] = string("Window",Windows[j]) => Transobj
-   end
-   return TransposedWindows
-end
-
 #function to take labeled training data csv and produce
 #the training data required for the LSTM
 function CreateTraining(Data,TSlen,features,correct)
@@ -92,22 +52,6 @@ function Softmax(x)
 end
 
 #ReLU transforms all negative values into 0. You lose gradient descent power
-function ReLU(x)
-   if x < 0
-      x = 0
-   end
-   return x
-end
-
-#LeakyReLU transforms negative values into a slight negative with an alpha normally 0.01
-function LeakyReLU(x,a = 0.01)
-   if x < 0
-      x = (x *  a)
-   end
-   return x
-end
-
-
 
 function SigmoidDiff(x)
    return Sigmoid(x) * (1-Sigmoid(x))
@@ -115,24 +59,6 @@ end
 
 function TanhDiff(x)
    return sinh(x)/cosh(x)
-end
-
-function ReLUDiff(x)
-   if x < 0
-      x = 0
-   else
-      x = 1
-   end
-   return x
-end
-
-function LeakyReLUDiff(x,a = 0.01)
-   if x < 0
-      x = a
-   else
-      x = 1
-   end
-   return x
 end
 
 function SoftmaxDiff(x)
@@ -153,129 +79,6 @@ function SoftmaxDiff(x)
    end
    return y
 end
-
-function MSE(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,(y[i] - x[i])^2)
-   end
-   return mean(z)
-end
-
-function MSEDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,y[i]-x[i])
-   end
-   return z
-end
-
-function MSLE(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,log1p((y[i]) - log1p(x[i]))^2)
-   end
-   return mean(z)
-end
-
-function MSLEDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z, (log(y) - log(x)) / x)
-   end
-   return z
-end
-
-function L1(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,abs(y[i] - x[i]))
-   end
-   return sum(z)
-end
-
-function L1Diff(z,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,(y[i] - x[i])/(abs(y[i] - x[i])))
-   end
-   return z
-end
-
-function L2(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,(y[i] - x[i])^2)
-   end
-   return sum(z)
-end
-
-function L2Diff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,2 * (y[i] - z[i]))
-   end
-   return z
-end
-
-function MAE(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,abs(y[i] - x[i]))
-   end
-   return (1/length(x)) * sum(z)
-end
-
-function MAEDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      if y[i] - x[i] > 0
-      push!(z, 1)
-      elseif y[i] - x[i] < 0
-      push!(z, -1)
-      else
-      push!(z,0)
-      end
-   end
-   return z
-end
-
-function MAPE(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,abs((y[i] - x[i]) / y[i])*100)
-   end
-   return (1/length(x)) * sum(z)
-end
-
-function Hinge(x,y,m = 1)
-   z = []
-   for i = 1:length(x)
-      push!(z,max(0,m - y[i] * x[i]))
-   end
-   return (1/length(x)) * sum(z)
-end
-
-function HingeDiff(x,y,m=1)
-   z = []
-   for i = 1:length(x)
-      if max(m,1 - y[i] * x[i]) < 1
-         push!(z,-y[i]*x[i])
-      elseif max(0,m - y[i] * x[i]) > 1
-       push!(z,0)
-      end
-   end
-   return z
-end
-
-function Hinge2(x,y,m = 1)
-   z = []
-   for i = 1:length(x)
-      push!(z,max(0,m - y[i] * x[i])^2)
-   end
-   return (1/length(x)) * sum(z)
-end
-
 
 function NLL(x,y)
    for i = 1:length(x)
@@ -298,22 +101,6 @@ function NLLDiff(x,y)
    return sum(z)
 end
 
-function xent(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,(y[i]*log(x[i])) + (1-y[i])*(log(1-x[i])))
-   end
-   return (-(1/length(x)) * sum(z))
-end
-
-function xentDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,-1 * (1/x[i]) + (1-y[i])*(1/(1-x[i])))
-   end
-   return z
-end
-
 function MCXent(x,y)
    z = []
    for i = 1:length(x)
@@ -329,65 +116,6 @@ function MCXentDiff(x,y)
    end
    return z
 end
-
-function KLdiv(x,y)
-   z = []
-   a = []
-   for i = 1:length(x)
-      push!(z,y[i] * log(y[i]))
-      push!(a,y[i] * log(x[i]))
-   end
-   return ((1/length(x)) * sum(z)) - ((1/length(x))*sum(a))
-end
-
-function poissonloss(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z, x[i] - (y[i]*log(x[i])))
-   end
-   return (1/length(x)) * sum(z)
-end
-
-function poissonDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z, 1 - 1 * 1/x[i])
-   end
-   return z
-end
-
-
-function cosprox(x,y)
-   a = []
-   b = []
-   c = []
-   for i = 1:length(x)
-      push!(a,y[i]*x[i])
-      push!(b,y[i]^2)
-      push!(c,x[i]^2)
-   end
-   return sum(a) / sqrt(sum(b)) * sqrt(sum(c))
-end
-
-function cosproxDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,x[i]/ (abs(y[i]) * abs(x[i]) - ((y[i] * x[i])/ (sqrt((y[i]^2)) * sqrt((x[i]^2))) * (y[i]/(abs(y[i])^2)))))
-   end
-   return z
-end
-
-function invdot(x,y)
-   z = []
-   for j = 1:length(x)
-      for i = 1:length(y)
-         push!(z,x[j] * y[i])
-      end
-   end
-   return reshape(z,length(x),length(y))
-end
-
-
 ##### time to build an lstm RNN
 
 function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
@@ -662,6 +390,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
       for j = 1:batchlen:length(Data)
          counter += 1
          Fwh,Fwcache = LSTMForwardPass(Data[j:batchlen],Params)
+         #print("\n",size(Fwh))
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          TP, TN, FP, FN = RightWrong(preds,Correct[j:batchlen],TP,TN,FP,FN)
          dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:batchlen],Afcache)
@@ -674,12 +403,10 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
                Params[k][:,:,x] = (Params[k][:,:,x] + LR * all_grads[k][:,:,x])
             end
          end
+         print("\n",TP,"\n",TN,"\n",FP,"\n",FN)
          #print("\n",all_grads["We"][1])
-         #if Params["We"][1] == NaN
-         #   print("\n",Data[j:batchlen])
-         #   break
-         #end
          if counter == (length(Data)/batchlen)
+            #print("\n",Params["We"][1])
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,
             " Precision is ",((TP)/(TP + FP))*100,
             " Recall is ", (TP/(TP + FN)*100))
