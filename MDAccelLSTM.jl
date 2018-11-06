@@ -144,7 +144,6 @@ function SoftmaxDiff(x)
    end
    for i = 1:size(y)[1]
       for j = 1:size(y)[1]
-         print(i,j)
          if i == j
             y[i,j] = x[i] * (1-x[i])
          else
@@ -464,66 +463,91 @@ function LSTMForwardPass(x,Params)
 end
 
 function LSTMBackwards(dh_next,ds_next,Cache,Params)
-   tanh_s = tanh.(cache["s_next"])
-   ds_next = dot.((dot.(dh_next, Cache["q_t"])),TanhDiff.(Cache["s_next"])) + ds_next
-   #forget gate f
-   df_step = dot.(ds_next, Cache["s_prev"])
-   dsigmoid_f = SigmoidDiff.(Cache["f_t"])
-   f_temp = dot.(df_step,dsigmoid_f)
-   dUf_step = transpose(f_temp) * Cache["x_t"]
-   dWf_step = transpose(f_temp) * Cache["h_prev"]
-   dbf_step =  transpose(repeat([sum(f_temp)],size(f_temp)[2]))
-   #Input gate g
-   dg_step = dot.(ds_next, Cache["e_t"])
-   dsigmoid_g = SigmoidDiff.(Cache["g_t"])
-   g_temp = dot.(dg_step, dsigmoid_g)
-   dUg_step = transpose(g_temp) * Cache["x_t"]
-   dWg_step = transpose(g_temp) * Cache["h_prev"]
-   dbg_step =  transpose(repeat([sum(g_temp)],size(g_temp)[2]))
-   #output gate q
-   dq_step = dot.(ds_next, tanh_s)
-   dsigmoid_q = SigmoidDiff.(Cache["q_t"])
-   q_temp = dot.(dq_step, dsigmoid_q)
-   dUq_step = transpose(q_temp) * Cache["x_t"]
-   dWq_step = transpose(q_temp) * Cache["h_prev"]
-   dbq_step = transpose(repeat([sum(q_temp)],size(q_temp)[2]))
-   #input transform e
-   de_step = dot.(ds_next, Cache["g_t"])
-   dsigmoid_e = SigmoidDiff.(Cache["e_t"])
-   e_temp = dot.(de_step, dsigmoid_e)
-   dUe_step = transpose(e_temp) * Cache["x_t"]
-   dWe_step = transpose(e_temp) * Cache["h_prev"]
-   dbe_step =  transpose(repeat([sum(e_temp)],size(e_temp)[2]))
-   #gradient w.r.t previous state h_prev
-   dh_prev = dot.(dh_next, dot.(tanh_s, dsigmoid_q))* Params["Wq"] +
-   dot.(ds_next,dot.(s_prev,dsigmoid_f)) * Params["Wf"]+
-   dot.(ds_next,dot.(g_t,dsigmoid_e)) * Params["We"] +
-   dot.(ds_next,dot.(e_t,dsigmoid_g)) * Params["Wg"]
-   ds_prev = dot.(Cache["f_t"],ds_next)
+   a,b,c = size(dh_next)
+   d = size(Cache["x_t"][1])[1]
+   tanh_s = zeros(a,b,c)
+   dUf_step = zeros(b,d,c)
+   dWf_step = zeros(b,a,c)
+   dbf_step = zeros(a,b,c)
+   #
+   dUg_step = zeros(b,d,c)
+   dWg_step = zeros(b,a,c)
+   dbg_step = zeros(a,b,c)
+   #
+   dUq_step = zeros(b,d,c)
+   dWq_step = zeros(b,a,c)
+   dbq_step = zeros(a,b,c)
+   #
+   dUe_step = zeros(b,d,c)
+   dWe_step = zeros(b,a,c)
+   dbe_step = zeros(a,b,c)
+   #
+   dh_prev = zeros(a,b,c)
+   ds_prev = zeros(a,b,c)
+   for i in 1:size(dh_next)[3]
+      tanh_s[:,:,i] = tanh.(Cache["s_next"][i])
+      ds_next[:,:,i] = dot.((dot.(dh_next[:,:,i], Cache["q_t"][i])),TanhDiff.(Cache["s_next"][i])) + ds_next[:,:,i]
+      #forget gate f
+      df_step = dot.(ds_next[:,:,i], Cache["s_prev"][i])
+      dsigmoid_f = SigmoidDiff.(Cache["f_t"][i])
+      f_temp = dot.(df_step,dsigmoid_f)
+      dUf_step[:,:,i] = transpose(f_temp) * transpose(Cache["x_t"][i])
+      dWf_step[:,:,i] = transpose(f_temp) * Cache["h_prev"][i]
+      dbf_step[:,:,i] = repeat([sum(f_temp)],size(f_temp)[1],size(f_temp)[2])
+      #Input gate g
+      dg_step = dot.(ds_next[:,:,i], Cache["e_t"][i])
+      dsigmoid_g = SigmoidDiff.(Cache["g_t"][i])
+      g_temp = dot.(dg_step, dsigmoid_g)
+      dUg_step[:,:,i] = transpose(g_temp) * transpose(Cache["x_t"][i])
+      dWg_step[:,:,i] = transpose(g_temp) * Cache["h_prev"][i]
+      dbg_step[:,:,i] = repeat([sum(g_temp)],size(g_temp)[1],size(g_temp)[2])
+      #output gate q
+      dq_step = dot.(ds_next[:,:,i], tanh_s[:,:,i])
+      dsigmoid_q = SigmoidDiff.(Cache["q_t"][i])
+      q_temp = dot.(dq_step, dsigmoid_q)
+      dUq_step[:,:,i] = transpose(q_temp) * transpose(Cache["x_t"][i])
+      dWq_step[:,:,i] = transpose(q_temp) * Cache["h_prev"][i]
+      dbq_step[:,:,i] = repeat([sum(q_temp)],size(q_temp)[1],size(q_temp)[2])
+      #input transform e
+      de_step = dot.(ds_next[:,:,i], Cache["g_t"][i])
+      dsigmoid_e = SigmoidDiff.(Cache["e_t"][i])
+      e_temp = dot.(de_step, dsigmoid_e)
+      dUe_step[:,:,i] = transpose(e_temp) * transpose(Cache["x_t"][i])
+      dWe_step[:,:,i] = transpose(e_temp) * Cache["h_prev"][i]
+      dbe_step[:,:,i] = repeat([sum(e_temp)],size(e_temp)[1],size(e_temp)[2])
+      #gradient w.r.t previous state h_prev
+      dh_prev[:,:,i] = dot.(dh_next[:,:,i], dot.(tanh_s[:,:,i], dsigmoid_q))* Params["Wq"][i] +
+      dot.(ds_next[:,:,i],dot.(s_prev[:,:,:][i],dsigmoid_f)) * Params["Wf"][i]+
+      dot.(ds_next[:,:,i],dot.(Cache["g_t"][i],dsigmoid_e)) * Params["We"][i] +
+      dot.(ds_next[:,:,i],dot.(Cache["e_t"][i],dsigmoid_g)) * Params["Wg"][i]
+      ds_prev[:,:,i] = dot.(Cache["f_t"][i],ds_next[:,:,i])
+   end
    grads = Dict([("We" , dWe_step), ("Wf" , dWf_step), ("Wg" , dWg_step), ("Wq", dWq_step),
-              ("Ue" , dUe_step), ("Uf" , dUf_step), ("Ug" , dUg_step), ("Uq" , dUq_step),
-              ("be" , dbe_step), ("bf" , dbf_step), ("bg" , dbg_step), ("bq" , dbq_step)])
-   return dh_prev, ds_prev, grads
+               ("Ue" , dUe_step), ("Uf" , dUf_step), ("Ug" , dUg_step), ("Uq" , dUq_step),
+               ("be" , dbe_step), ("bf" , dbf_step), ("bg" , dbg_step), ("bq" , dbq_step)])
+   return dh_prev,ds_prev,grads
 end
 
 function LSTMBackwardProp(dh, cache_dict, Params)
-   a,b,c = size(dh)
-   dh_next = zeros(a,b)
-   ds_next = zeros(a,b)
+   a,b,c,d = size(dh)
+   dh_next = zeros(a,b,c)
+   ds_next = zeros(a,b,c)
    all_grads = Dict()
    kys = collect(keys(Params))
    kys = filter!(e->e∉["s_0","h_0","U","b2"],kys)
    for (n, f) in enumerate(kys)
       a,b = size(Params[f])
-      all_grads[f] = zeros(a,b)
+      all_grads[f] = zeros(a,b,c)
    end
-   for i = c:-1:2
-      dh_next = dh[:,:,i-1]
+   for i = d:-1:2
+      dh_next += dh[:,:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
       ds_next = ds_prev
       for (n, k) in enumerate(kys)
-         all_grads[k] = -(all_grads[k] + step_grads[k])
+         for j = 1:c
+            all_grads[k][j] = -(all_grads[k][j] + step_grads[k][j])
+         end
       end
    end
    return all_grads
@@ -545,10 +569,10 @@ function LSTMAfflineFW(h,U,b2)
       ypred = []
       for z = 1:e
          y3 = []
-         print("\n",z)
+         #print("\n",z)
          for j = 1:c
             y3 = push!(y3,y[:,:,j,i][z])
-            print("\n",y[:,:,j,i][z])
+            #print("\n",y[:,:,j,i][z])
          end
          ypred = push!(ypred,mean(y3))
       end
@@ -560,22 +584,35 @@ end
 
 function LSTMAfflineBW(theta,y,yt,Cache)
    U,b2,h = Cache
-   a,b,c = size(theta)
-   sdth = zeros(b,b,c)
+   a,b,c,d = size(theta)
+   sdth = zeros(b,b,c,d)
    loss = []
-   Losdif= zeros(a,b,c)
-   dthetah = zeros(a,b,c)
-   dU = zeros(size(U)[1],size(U)[2],c)
-   for i = 1:size(theta)[3]
-      sdth[:,:,i] = SoftmaxDiff(theta[:,:,i])
-      push!(loss,NLL(y[:,:,i],yt[:,:,i]))
-      Losdif[:,:,i] = transpose(NLLDiff(y[:,:,i],yt[:,:,i]))
-      dtheta[:,:,i] = Losdif[:,:,i] * sdth[:,:,i]
-      dh[:,:,i] = dtheta[:,:,i] * U
-      dU[:,:,i] =  transpose(dtheta[:,:,i]) * dh
+   meanloss = []
+   Losdif= zeros(a,b,c,d)
+   dtheta = zeros(a,b,c,d)
+   dh = zeros(a,size(U)[2],c,d)
+   dU = zeros(size(U)[1],size(U)[2],c,d)
+   for i = 1:d
+      for j = 1:c
+         sdth[:,:,j,i] = SoftmaxDiff(theta[:,:,j,i])
+      end
+      for j = 1:c
+         push!(loss,NLL(y[:,:,j,i],yt[i]))
+      end
+      push!(meanloss,mean(loss))
+      for j = 1:c
+         Losdif[:,:,j,i] = transpose(NLLDiff.(y[:,:,j,i],yt[i]))
+         dtheta[:,:,j,i] = Losdif[:,:,j,i] * sdth[:,:,j,i]
+         dh[:,:,j,i] = dtheta[:,:,j,i] * U[:,:,j]
+         dU[:,:,j,i] =  transpose(dtheta[:,:,j,i]) * dh[:,:,j,i]
+      end
    end
-   db2 = repeat([-sum(dtheta)],size(dtheta)[2],1)
-   return dtheta,dh,dU,db2,loss
+   dU2 = zeros(size(U))
+   for i = 1:d
+      dU2 += dU[:,:,:,i]
+   end
+   db2 = repeat([-sum(dtheta)],size(dtheta)[2],1,c)
+   return dtheta,dh,dU2,db2,loss
 end
 
 function CreateDataArray(Order,dict)
@@ -594,6 +631,20 @@ function CreateCorrectArray(Order,dict)
    return Data
 end
 
+function RightWrong(pred,Correct,Right,Wrong)
+   for i = 1:length(Correct)
+      predc = findmax(pred[:,:,i])[2][2]
+      truc = findmax(Correct[i])[2][2]
+      if predc == truc
+         Right += 1
+      else
+         Wrong += 1
+      end
+   end
+   return Right, Wrong
+end
+
+
 function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,Report = -1,features,iter)
    Params = initialiseLSTM(TSlen,hiddim,Numclas,features)
    counter = 1
@@ -601,17 +652,22 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,Report = -1,features,i
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
-      for i = 1:length(Data)
+      Right = 0
+      Wrong = 0
+      for j = 1:batchlen:length(Data)
          counter += 1
-         Fwh,Fwcache = LSTMForwardPass(Data[1:batchlen],Params)
-         Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         dtheta,dh,dU,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
+         Fwh,Fwcache = LSTMForwardPass(Data[j:batchlen],Params)
+         the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
+         Right, Wrong = RightWrong(preds,Correct[j:batchlen],Right,Wrong)
+         dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:batchlen],Afcache)
          all_grads = LSTMBackwardProp(dh,Fwcache,Params)
          all_grads["U"] = -dU
          all_grads["b2"] = db2
          kys = collect(keys(all_grads))
          for (n, k) in enumerate(kys)
-            Params[k] = (Params[k] + all_grads[k])
+            for x = 1:length(features)
+               Params[k][x] = (Params[k][x] + all_grads[k][x])
+            end
          end
          if counter == Report
             print(string("Loss is",loss))
