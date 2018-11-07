@@ -5,9 +5,7 @@ using DataFrames
 using Distributions
 using LinearAlgebra
 using Random
-# If your data is not in Neural Network format this will transpose data into input arrays of whatever size you want
-#Input data must be in format Date Time X Y Z
-#Becomes Date Time x1:xn y1:yn z1:1n n = number of input neurones
+
 #function to take labeled training data csv and produce
 #the training data required for the LSTM
 function CreateTraining(Data,TSlen,features,correct)
@@ -29,10 +27,13 @@ function CreateTraining(Data,TSlen,features,correct)
       Corary[findall(Classifiers .== TrainDat[i][2][1])[1][1]] = 1
       TrainDat[i][2] = Corary
    end
+   #returns a dictionary with two parts one the data the other
+   # is the correct one hot vector
    return(TrainDat,Classifiers)
 end
 
-
+#function to bootstrap the data so it is encountered
+#in a different order in the next iteration
 function BootstrapDat(TrainDat,minibatch,TSlen)
    KeyOrder = collect(1:length(TrainDat))
    KeyOrder = reshape(KeyOrder,minibatch,:)
@@ -51,8 +52,7 @@ function Softmax(x)
    exp.(x) ./ sum(exp.(x))
 end
 
-#ReLU transforms all negative values into 0. You lose gradient descent power
-
+#differential of the Sigmoid
 function SigmoidDiff(x)
    return Sigmoid(x) * (1-Sigmoid(x))
 end
@@ -86,11 +86,6 @@ function NLL(x,y)
          return -log(x[i])
       end
    end
-end
-
-function NLLtot(x,y)
-   push!(y,x)
-   return sum(y)
 end
 
 function NLLDiff(x,y)
@@ -157,11 +152,11 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
    h_next = []
    for i = 1:dims
       f_t = push!(f_t,Sigmoid.(Params["bf"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Uf"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wf"][:,:,i]))))
-      e_t = push!(e_t,tanh.(Params["be"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ue"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["We"][:,:,i]))))
+      e_t = push!(e_t,Sigmoid.(Params["be"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ue"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["We"][:,:,i]))))
       g_t = push!(g_t,Sigmoid.(Params["bg"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ug"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wg"][:,:,i]))))
       q_t = push!(q_t,Sigmoid.(Params["bq"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Uq"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wq"][:,:,i]))))
       #compute signals
-      s_next = push!(s_next,dot.(f_t[i],s_prev[i]) + dot.(g_t[i],e_t[i]))
+      s_next = push!(s_next,dot.(f_t[i], s_prev[i]) + dot.(g_t[i],e_t[i]))
       h_next = push!(h_next,dot.(q_t[i], tanh.(s_next[i])))
    end
    s_next = reshape(s_next,1,:,dims)
@@ -213,7 +208,9 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
    dh_prev = zeros(a,b,c)
    ds_prev = zeros(a,b,c)
    for i in 1:size(dh_next)[3]
+      #frequenctly used quantity
       tanh_s[:,:,i] = tanh.(Cache["s_next"][i])
+      #internal state s
       ds_next[:,:,i] = dot.((dot.(dh_next[:,:,i], Cache["q_t"][i])),(1 .- TanhDiff.(Cache["s_next"][i]) .^ 2)) + ds_next[:,:,i]
       #forget gate f
       df_step = dot.(ds_next[:,:,i], Cache["s_prev"][i])
@@ -264,18 +261,16 @@ function LSTMBackwardProp(dh, cache_dict, Params)
    kys = collect(keys(Params))
    kys = filter!(e->e∉["s_0","h_0","U","b2"],kys)
    for (n, f) in enumerate(kys)
-      a,b = size(Params[f])
+      a,b,c = size(Params[f])
       all_grads[f] = zeros(a,b,c)
    end
-   for i = d:-1:2
-      dh_next += dh[:,:,:,i-1]
+   for i = (d+1):-1:2
+      dh_next = dh[:,:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
       ds_next = ds_prev
       for (n, k) in enumerate(kys)
-         for j = 1:c
-            all_grads[k][:,:,j] = -(all_grads[k][:,:,j] + step_grads[k][:,:,j])
-         end
+            all_grads[k] += step_grads[k]
       end
    end
    return all_grads
@@ -297,10 +292,8 @@ function LSTMAfflineFW(h,U,b2)
       ypred = []
       for z = 1:e
          y3 = []
-         #print("\n",z)
          for j = 1:c
             y3 = push!(y3,y[:,:,j,i][z])
-            #print("\n",y[:,:,j,i][z])
          end
          ypred = push!(ypred,mean(y3))
       end
@@ -309,7 +302,7 @@ function LSTMAfflineFW(h,U,b2)
    Cache = U,b2,h
    return theta,y, Cache,pred
 end
-
+#this is wrong, need to do derivatives better
 function LSTMAfflineBW(theta,y,yt,Cache)
    U,b2,h = Cache
    a,b,c,d = size(theta)
@@ -320,6 +313,7 @@ function LSTMAfflineBW(theta,y,yt,Cache)
    dtheta = zeros(a,b,c,d)
    dh = zeros(a,size(U)[2],c,d)
    dU = zeros(size(U)[1],size(U)[2],c,d)
+   db2 = zeros(a,b,c)
    for i = 1:d
       for j = 1:c
          sdth[:,:,j,i] = SoftmaxDiff(theta[:,:,j,i])
@@ -332,14 +326,19 @@ function LSTMAfflineBW(theta,y,yt,Cache)
          Losdif[:,:,j,i] = transpose(NLLDiff.(y[:,:,j,i],yt[i]))
          dtheta[:,:,j,i] = Losdif[:,:,j,i] * sdth[:,:,j,i]
          dh[:,:,j,i] = dtheta[:,:,j,i] * U[:,:,j]
-         dU[:,:,j,i] =  transpose(dtheta[:,:,j,i]) * dh[:,:,j,i]
+         dU[:,:,j,i] =  transpose(dtheta[:,:,j,i]) * h[:,:,j,i]
       end
    end
    dU2 = zeros(size(U))
    for i = 1:d
       dU2 += dU[:,:,:,i]
    end
-   db2 = repeat([-sum(dtheta)],1,size(dtheta)[2],c)
+   for i = 1:c
+      db2[:,:,i] = repeat([sum(dtheta[:,:,i,:])],a,b)
+   end
+   for dz in [dh,dU2,db2]
+      clamp.(dz,-1,1)
+   end
    return dtheta,dh,dU2,db2,loss
 end
 
@@ -389,21 +388,26 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
       counter = 1
       for j = 1:batchlen:length(Data)
          counter += 1
-         Fwh,Fwcache = LSTMForwardPass(Data[j:batchlen],Params)
+         Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
          #print("\n",size(Fwh))
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         TP, TN, FP, FN = RightWrong(preds,Correct[j:batchlen],TP,TN,FP,FN)
-         dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:batchlen],Afcache)
+         TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
+         dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:(j+batchlen-1)],Afcache)
          all_grads = LSTMBackwardProp(dh,Fwcache,Params)
          all_grads["U"] = -dU
          all_grads["b2"] = db2
+         lstm_mems = Dict()
          kys = collect(keys(all_grads))
-         for (n, k) in enumerate(kys)
-            for x = 1:length(features)
-               Params[k][:,:,x] = (Params[k][:,:,x] + LR * all_grads[k][:,:,x])
-            end
+         for (n, f) in enumerate(kys)
+            a,b,c = size(Params[f])
+            lstm_mems[f] = zeros(a,b,c)
          end
-         print("\n",TP,"\n",TN,"\n",FP,"\n",FN)
+         for (n, k) in enumerate(kys)
+            all_grads[k] = clamp.(all_grads[k],-0.1,0.1)
+            lstm_mems[k] += dot.(all_grads[k],all_grads[k])
+            Params[k] += - (LR * (all_grads[k] ./ (sqrt.(lstm_mems[k]) .+ 1e-8)))
+         end
+         #print("\n",TP,"\n",TN,"\n",FP,"\n",FN)
          #print("\n",all_grads["We"][1])
          if counter == (length(Data)/batchlen)
             #print("\n",Params["We"][1])
