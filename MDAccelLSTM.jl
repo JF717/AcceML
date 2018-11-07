@@ -61,56 +61,7 @@ function TanhDiff(x)
    return sinh(x)/cosh(x)
 end
 
-function SoftmaxDiff(x)
-   y = zeros(length(x),length(x))
-   counter = 1
-   for i = diagind(y)
-   y[i] = x[counter]
-   counter += 1
-   end
-   for i = 1:size(y)[1]
-      for j = 1:size(y)[1]
-         if i == j
-            y[i,j] = x[i] * (1-x[i])
-         else
-            y[i,j] = -x[i] * x[j]
-         end
-      end
-   end
-   return y
-end
 
-function NLL(x,y)
-   for i = 1:length(x)
-      if y[i] == 1
-         return -log(x[i])
-      end
-   end
-end
-
-function NLLDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z, y[i] * -1/x[i])
-   end
-   return sum(z)
-end
-
-function MCXent(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z,y[i]* log(x[i]))
-   end
-   return sum(z)
-end
-
-function MCXentDiff(x,y)
-   z = []
-   for i = 1:length(x)
-      push!(z, 1/x[i])
-   end
-   return z
-end
 ##### time to build an lstm RNN
 
 function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
@@ -119,10 +70,10 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
    Wg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
    Wq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
 #
-   be = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   be = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bf = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bg = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bq = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
 #
    Ue = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
    Uf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
@@ -133,7 +84,7 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
    s_0 = reshape(zeros(1,sizehiddenlayer,dims),1,sizehiddenlayer,dims)
 #
    U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)*dims),numberofclass,sizehiddenlayer,dims)
-   b2 = reshape(rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,3)
+   b2 = reshape(rand(Uniform(0,1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,3)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
@@ -152,7 +103,7 @@ function LSTMForward(x_t,h_prev,s_prev,Params)
    h_next = []
    for i = 1:dims
       f_t = push!(f_t,Sigmoid.(Params["bf"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Uf"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wf"][:,:,i]))))
-      e_t = push!(e_t,Sigmoid.(Params["be"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ue"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["We"][:,:,i]))))
+      e_t = push!(e_t,tanh.(Params["be"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ue"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["We"][:,:,i]))))
       g_t = push!(g_t,Sigmoid.(Params["bg"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Ug"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wg"][:,:,i]))))
       q_t = push!(q_t,Sigmoid.(Params["bq"][:,:,i] .+ (transpose(x_t[i]) * transpose(Params["Uq"][:,:,i])) + (h_prev[:,:,i] * transpose(Params["Wq"][:,:,i]))))
       #compute signals
@@ -265,7 +216,7 @@ function LSTMBackwardProp(dh, cache_dict, Params)
       all_grads[f] = zeros(a,b,c)
    end
    for i = (d+1):-1:2
-      dh_next = dh[:,:,:,i-1]
+      dh_next += dh[:,:,:,i-1]
       dh_prev, ds_prev, step_grads = LSTMBackwards(dh_next, ds_next, cache_dict[i-1], Params)
       dh_next = dh_prev
       ds_next = ds_prev
@@ -302,29 +253,36 @@ function LSTMAfflineFW(h,U,b2)
    Cache = U,b2,h
    return theta,y, Cache,pred
 end
-#this is wrong, need to do derivatives better
-function LSTMAfflineBW(theta,y,yt,Cache)
+
+function softmaxloss(theta,y_t)
+    a,b,c,d = size(theta)
+    loss = []
+    combloss = []
+    for i = 1:d
+        for j = 1:c
+            prbs = exp.(theta[:,:,j,i] .- maximum(theta[:,:,j,i]))
+            prbs = prbs ./ sum(prbs)
+            loss = push!(loss,-sum(log.(prbs[findall(yt[i] .== 1)])))
+            tempdtheta = prbs
+            tempdtheta[findall(yt[i] .== 1)] = tempdtheta[findall(yt[i] .== 1)] .- 1
+            tempdtheta = tempdtheta ./ b
+            dtheta[:,:,j,i] = tempdtheta
+        end
+    end
+    for i = 1:c:c*d
+        combloss = push!(combloss,mean(loss[i:i+2]))
+    end
+    return combloss, dtheta
+end
+
+function LSTMAfflineBW(dtheta,Cache)
    U,b2,h = Cache
-   a,b,c,d = size(theta)
-   sdth = zeros(b,b,c,d)
-   loss = []
-   meanloss = []
-   Losdif= zeros(a,b,c,d)
-   dtheta = zeros(a,b,c,d)
+   a,b,c,d = size(dtheta)
    dh = zeros(a,size(U)[2],c,d)
    dU = zeros(size(U)[1],size(U)[2],c,d)
    db2 = zeros(a,b,c)
    for i = 1:d
       for j = 1:c
-         sdth[:,:,j,i] = SoftmaxDiff(theta[:,:,j,i])
-      end
-      for j = 1:c
-         push!(loss,NLL(y[:,:,j,i],yt[i]))
-      end
-      push!(meanloss,mean(loss))
-      for j = 1:c
-         Losdif[:,:,j,i] = transpose(NLLDiff.(y[:,:,j,i],yt[i]))
-         dtheta[:,:,j,i] = Losdif[:,:,j,i] * sdth[:,:,j,i]
          dh[:,:,j,i] = dtheta[:,:,j,i] * U[:,:,j]
          dU[:,:,j,i] =  transpose(dtheta[:,:,j,i]) * h[:,:,j,i]
       end
@@ -336,10 +294,10 @@ function LSTMAfflineBW(theta,y,yt,Cache)
    for i = 1:c
       db2[:,:,i] = repeat([sum(dtheta[:,:,i,:])],a,b)
    end
-   for dz in [dh,dU2,db2]
-      clamp.(dz,-1,1)
-   end
-   return dtheta,dh,dU2,db2,loss
+   #dh = clamp.(dh,-0.1,0.1)
+   #dU2 = clamp.(dU2,-0.1,0.1)
+   #db2 = clamp.(db2,-0.1,0.1)
+   return dh,dU2,db2
 end
 
 function CreateDataArray(Order,dict)
@@ -385,16 +343,17 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
       TN = 0
       FP = 0
       FN = 0
-      counter = 1
-      for j = 1:batchlen:length(Data)
-         counter += 1
+      perc90 = convert(Int64,(length(Data)*0.9)+(batchlen/2))
+      #counter = 1
+      for j = 1:batchlen:(perc90-batchlen)
+         #counter += 1
          Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
          #print("\n",size(Fwh))
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
-         dtheta,dh,dU,db2,loss = LSTMAfflineBW(the,Clas,Correct[j:(j+batchlen-1)],Afcache)
+         loss,dtheta = softmaxloss(the,Correct[j:(j+batchlen-1)])
+         dh,dU,db2 = LSTMAfflineBW(dtheta,Afcache)
          all_grads = LSTMBackwardProp(dh,Fwcache,Params)
-         all_grads["U"] = -dU
+         all_grads["U"] = dU
          all_grads["b2"] = db2
          lstm_mems = Dict()
          kys = collect(keys(all_grads))
@@ -403,14 +362,17 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
             lstm_mems[f] = zeros(a,b,c)
          end
          for (n, k) in enumerate(kys)
-            all_grads[k] = clamp.(all_grads[k],-0.1,0.1)
+            all_grads[k] = clamp.(all_grads[k],-1,1)
             lstm_mems[k] += dot.(all_grads[k],all_grads[k])
             Params[k] += - (LR * (all_grads[k] ./ (sqrt.(lstm_mems[k]) .+ 1e-8)))
          end
-         #print("\n",TP,"\n",TN,"\n",FP,"\n",FN)
-         #print("\n",all_grads["We"][1])
-         if counter == (length(Data)/batchlen)
-            #print("\n",Params["We"][1])
+      end
+      for j = perc90:batchlen:(length(Data)-batchlen)
+         Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
+         the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
+         TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
+         print("\n",TP)
+         if (j+6) == length(Data)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,
             " Precision is ",((TP)/(TP + FP))*100,
             " Recall is ", (TP/(TP + FN)*100))

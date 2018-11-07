@@ -1,16 +1,21 @@
-function softmax(theta, y, mask):
-    N, T, V = theta.shape
-    theta_flat = theta.reshape(N*T, V)
-    y_flat = y.reshape(N*T)
-    mask_flat = mask.reshape(N*T)
 
-    probs = np.exp(theta_flat - np.max(theta_flat, axis=1, keepdims=True))
-    probs /= np.sum(probs, axis=1, keepdims=True)
-    loss = -np.sum(mask_flat * np.log(probs[np.arange(N * T), y_flat])) / N
-    dtheta_flat = probs.copy()
-    dtheta_flat[np.arange(N * T), y_flat] -= 1
-    dtheta_flat /= N
-    dtheta_flat *= mask_flat[:, None]
-
-    dtheta = dtheta_flat.reshape(N, T, V)
-    return loss, dtheta
+function softmaxloss(theta,y)
+    a,b,c,d = size(theta)
+    loss = []
+    combloss = []
+    for i = 1:d
+        for j = 1:c
+            prbs = exp.(theta[:,:,j,i] .- maximum(theta[:,:,j,i]))
+            prbs = prbs ./ sum(prbs)
+            loss = push!(loss,-sum(log.(prbs[findall(yt[i] .== 1)])))
+            tempdtheta = prbs
+            tempdtheta[findall(yt[i] .== 1)] = tempdtheta[findall(yt[i] .== 1)] .- 1
+            tempdtheta = tempdtheta ./ b
+            dtheta[:,:,j,i] = tempdtheta
+        end
+    end
+    for i = 1:c:c*d
+        combloss = push!(combloss,mean(loss[i:i+2]))
+    end
+    return combloss, dtheta
+end
