@@ -9,16 +9,17 @@ using Random
 #function to take labeled training data csv and produce
 #the training data required for the LSTM
 function CreateTraining(Data,TSlen,features,correct)
+   Datacop = copy(Data)
    TrainDat = Dict()
    counter = 1
-   Classifiers = convert(Array,unique(Data[correct]))
+   Classifiers = convert(Array,unique(Datacop[correct]))
    for i = 1:TSlen:nrow(Data)
       curdat = []
       for j = 1:length(features)
-          push!(curdat,Data[i:i+(TSlen-1),features[j]])
+          push!(curdat,Datacop[i:i+(TSlen-1),features[j]])
       end
       curdat = reshape(hcat.(curdat),1,:,3)
-      Class = convert(Array,Data[i,correct])
+      Class = convert(Array,Datacop[i,correct])
       TrainDat[counter] = [curdat,Class]
       counter +=1
    end
@@ -34,13 +35,63 @@ end
 
 #function to bootstrap the data so it is encountered
 #in a different order in the next iteration
-function BootstrapDat(TrainDat,minibatch,TSlen)
-   KeyOrder = collect(1:length(TrainDat))
+function BootstrapDat(TrainingDat,minibatch,TSlen)
+   KeyOrder = collect(1:length(TrainingDat))
    KeyOrder = reshape(KeyOrder,minibatch,:)
    KeyOrder = transpose(KeyOrder)
    SampleOrder = KeyOrder[randperm(end),:]
-   return(SampleOrder)
+   return SampleOrder
 end
+
+
+function CreateDataArray(Order,dict)
+   dictcop = copy(dict)
+   DataArr = []
+   for i in Order
+      push!(DataArr,dictcop[i][1])
+   end
+   return DataArr
+end
+
+function MinMaxNormalise(DatatoN)
+   DatatoNcop = copy(DatatoN)
+   DataNormed = zeros()
+   for i = 1:length(DatatoNcop)
+      for j = 1:size(DatatoNcop[i])[3]
+         for k = 1:length(DatatoNcop[i][j])
+            DatatoNcop[i][j][k] = (DatatoNcop[i][j][j] - minimum(DatatoNcop[i][j]))/(maximum(DatatoNcop[i][j])-minimum(DatatoNcop[i][j]))
+         end
+      end
+   end
+   return DatatoNcop
+end
+
+function CreateCorrectArray(Order,dict)
+   dictcop2 = copy(dict)
+   CorrData = []
+   for i in Order
+      push!(CorrData,dictcop2[i][2])
+   end
+   return CorrData
+end
+
+function RightWrong(pred,Correct,TP,TN,FP,FN)
+   for i = 1:length(Correct)
+      predc = findmax(pred[:,:,i])[2][2]
+      truc = findmax(Correct[i])[2][2]
+      if predc == truc
+         TP += 1
+         TN += (length(Correct[i])-1)
+      else
+         FP += 1
+         FN += 1
+         TN += (length(Correct[i])-2)
+      end
+   end
+   return TP, TN, FP, FN
+end
+
+
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
 function Sigmoid(x)
@@ -52,7 +103,6 @@ function Softmax(x)
    exp.(x) ./ sum(exp.(x))
 end
 
-#differential of the Sigmoid
 function SigmoidDiff(x)
    return Sigmoid(x) * (1-Sigmoid(x))
 end
@@ -60,8 +110,6 @@ end
 function TanhDiff(x)
    return sinh(x)/cosh(x)
 end
-
-
 ##### time to build an lstm RNN
 
 function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
@@ -70,10 +118,10 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
    Wg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
    Wq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
 #
-   be = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bf = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bg = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
-   bq = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   be = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,dims)
+   bf = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,dims)
+   bg = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,dims)
+   bq = reshape(rand(Uniform(0,1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,dims)
 #
    Ue = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
    Uf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
@@ -84,7 +132,7 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
    s_0 = reshape(zeros(1,sizehiddenlayer,dims),1,sizehiddenlayer,dims)
 #
    U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)*dims),numberofclass,sizehiddenlayer,dims)
-   b2 = reshape(rand(Uniform(0,1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,3)
+   b2 = reshape(rand(Uniform(0,1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,dims)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
@@ -162,7 +210,7 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
       #frequenctly used quantity
       tanh_s[:,:,i] = tanh.(Cache["s_next"][i])
       #internal state s
-      ds_next[:,:,i] = dot.((dot.(dh_next[:,:,i], Cache["q_t"][i])),(1 .- TanhDiff.(Cache["s_next"][i]) .^ 2)) + ds_next[:,:,i]
+      ds_next[:,:,i] = dot.((dot.(dh_next[:,:,i], Cache["q_t"][i])),(1 .- tanh.(Cache["s_next"][i]) .^ 2)) + ds_next[:,:,i]
       #forget gate f
       df_step = dot.(ds_next[:,:,i], Cache["s_prev"][i])
       dsigmoid_f = SigmoidDiff.(Cache["f_t"][i])
@@ -258,13 +306,14 @@ function softmaxloss(theta,y_t)
     a,b,c,d = size(theta)
     loss = []
     combloss = []
+    dtheta = zeros(a,b,c,d)
     for i = 1:d
         for j = 1:c
             prbs = exp.(theta[:,:,j,i] .- maximum(theta[:,:,j,i]))
             prbs = prbs ./ sum(prbs)
-            loss = push!(loss,-sum(log.(prbs[findall(yt[i] .== 1)])))
+            loss = push!(loss,-sum(log.(prbs[findall(y_t[i] .== 1)])))
             tempdtheta = prbs
-            tempdtheta[findall(yt[i] .== 1)] = tempdtheta[findall(yt[i] .== 1)] .- 1
+            tempdtheta[findall(y_t[i] .== 1)] = tempdtheta[findall(y_t[i] .== 1)] .- 1
             tempdtheta = tempdtheta ./ b
             dtheta[:,:,j,i] = tempdtheta
         end
@@ -294,51 +343,22 @@ function LSTMAfflineBW(dtheta,Cache)
    for i = 1:c
       db2[:,:,i] = repeat([sum(dtheta[:,:,i,:])],a,b)
    end
-   #dh = clamp.(dh,-0.1,0.1)
-   #dU2 = clamp.(dU2,-0.1,0.1)
-   #db2 = clamp.(db2,-0.1,0.1)
    return dh,dU2,db2
 end
 
-function CreateDataArray(Order,dict)
-   Data = []
-   for i in Order
-      push!(Data,dict[i][1])
-   end
-   return Data
-end
-
-function CreateCorrectArray(Order,dict)
-   Data = []
-   for i in Order
-      push!(Data,dict[i][2])
-   end
-   return Data
-end
-
-function RightWrong(pred,Correct,TP,TN,FP,FN)
-   for i = 1:length(Correct)
-      predc = findmax(pred[:,:,i])[2][2]
-      truc = findmax(Correct[i])[2][2]
-      if predc == truc
-         TP += 1
-         TN += (length(Correct)-1)
-      else
-         FP += 1
-         FN += 1
-         TN += (length(Correct)-2)
-      end
-   end
-   return TP, TN, FP, FN
-end
-
-
 function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
    Params = initialiseLSTM(TSlen,hiddim,Numclas,length(features))
+   lstm_mems = Dict()
+   kyz = collect(keys(Params))
+   for (n, f) in enumerate(kyz)
+      a,b,c = size(Params[f])
+      lstm_mems[f] = zeros(a,b,c)
+   end
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
+      #DataNorm = MinMaxNormalise(Data)
       TP = 0
       TN = 0
       FP = 0
@@ -355,24 +375,19 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
          all_grads = LSTMBackwardProp(dh,Fwcache,Params)
          all_grads["U"] = dU
          all_grads["b2"] = db2
-         lstm_mems = Dict()
          kys = collect(keys(all_grads))
-         for (n, f) in enumerate(kys)
-            a,b,c = size(Params[f])
-            lstm_mems[f] = zeros(a,b,c)
-         end
          for (n, k) in enumerate(kys)
-            all_grads[k] = clamp.(all_grads[k],-1,1)
+            #all_grads[k] = clamp.(all_grads[k],-1,1)
             lstm_mems[k] += dot.(all_grads[k],all_grads[k])
-            Params[k] += - (LR * (all_grads[k] ./ (sqrt.(lstm_mems[k]) .+ 1e-8)))
+            Params[k] += - (LR * (all_grads[k]) ./ (sqrt.(lstm_mems[k]) .+ 1e-8))
          end
       end
       for j = perc90:batchlen:(length(Data)-batchlen)
          Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
-         print("\n",TP)
          if (j+6) == length(Data)
+            print("\n",TP)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,
             " Precision is ",((TP)/(TP + FP))*100,
             " Recall is ", (TP/(TP + FN)*100))
