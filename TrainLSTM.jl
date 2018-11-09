@@ -7,11 +7,11 @@ for i = 600:600:nrow(TrainingData)
         push!(incor,i)
     end
 end
-Params = initialiseLSTM(100,100,5,3)
+Params = initialiseLSTM(100,100,5,2)
 TP, TN, FP, FN = 0,0,0,0
 lstm_mems = Dict()
-kys = collect(keys(Params))
-for (n, f) in enumerate(kys)
+kyz = collect(keys(Params))
+for (n, f) in enumerate(kyz)
     a,b,c = size(Params[f])
     lstm_mems[f] = zeros(a,b,c)
 end
@@ -29,7 +29,7 @@ for i = 1:100
     all_grads["U"] = dU
     all_grads["b2"] = db2
     #lstm_mems = Dict()
-    #kys = collect(keys(all_grads))
+    kys = collect(keys(all_grads))
     #for (n, f) in enumerate(kys)
     #a,b,c = size(Params[f])
     #lstm_mems[f] = zeros(a,b,c)
@@ -37,8 +37,16 @@ for i = 1:100
     for (n, k) in enumerate(kys)
     #all_grads[k] = clamp.(all_grads[k],-0.1,0.1)
     lstm_mems[k] += dot.(all_grads[k],all_grads[k])
-        Params[k] += - (LR * (all_grads[k]) #./ (sqrt.(lstm_mems[k]) .+ 1e-8)))
+    Params[k] += - (LR * all_grads[k]) ./ (sqrt.(lstm_mems[k]) .+ 1e-8)
     end
 end
 
-TrainedModel = TrainLSTM(TData,100,150,6,5,[6,7,8],1,0.01)
+TrainedModel = TrainLSTM(TData,100,150,6,5,[6,7,8],1000,0.1)
+
+
+##standardscalar
+#-1,1 normalisation
+#features including mean and variance
+#z against min max
+#kaiser filtering
+#compare average to max pool to consensus
