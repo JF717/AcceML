@@ -41,8 +41,9 @@ for i = 1:100
     end
 end
 
-TrainedModel = TrainLSTM(TData,100,150,6,5,[6,7,8],1000,0.1)
-
+TrainedModel2,mems2 = TrainLSTM(TData,100,150,6,5,[6,7,8],1000,0.1,TrainedModel2,mems2)
+save("TrainedWeights2.jld", TrainedModel2)
+save("Mems2.jld",mems2)
 
 ##standardscalar
 #-1,1 normalisation
