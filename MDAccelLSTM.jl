@@ -346,20 +346,22 @@ function LSTMAfflineBW(dtheta,Cache)
    return dh,dU2,db2
 end
 
-function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,PreviousModel = Nothing::Any)
+function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,PreviousModel = Nothing::Any, PreviousMems = Nothing::Any)
    if typeof(PreviousModel) != DataType
       Params = copy(PreviousModel)
+      lstm_mems = copy(PreviousMems)
       print("Using Previous Weights")
    else
       print("Initialising Weights")
       Params = initialiseLSTM(TSlen,hiddim,Numclas,length(features))
+      lstm_mems = Dict()
+      kyz = collect(keys(Params))
+      for (n, f) in enumerate(kyz)
+         a,b,c = size(Params[f])
+         lstm_mems[f] = zeros(a,b,c)
+      end
    end
-   lstm_mems = Dict()
-   kyz = collect(keys(Params))
-   for (n, f) in enumerate(kyz)
-      a,b,c = size(Params[f])
-      lstm_mems[f] = zeros(a,b,c)
-   end
+   print("Beginning Training")
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
@@ -400,7 +402,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,P
          end
       end
    end
-   return Params
+   return Params, lstm_mems
 end
 
 function RunLSTM(InputDat,hiddim,batchlen,Numclas,TrainedWeights)
