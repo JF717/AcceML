@@ -346,8 +346,14 @@ function LSTMAfflineBW(dtheta,Cache)
    return dh,dU2,db2
 end
 
-function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1)
-   Params = initialiseLSTM(TSlen,hiddim,Numclas,length(features))
+function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,PreviousModel = Nothing::Any)
+   if typeof(PreviousModel) != DataType
+      Params = copy(PreviousModel)
+      print("Using Previous Weights")
+   else
+      print("Initialising Weights")
+      Params = initialiseLSTM(TSlen,hiddim,Numclas,length(features))
+   end
    lstm_mems = Dict()
    kyz = collect(keys(Params))
    for (n, f) in enumerate(kyz)
