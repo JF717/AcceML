@@ -91,7 +91,41 @@ function RightWrong(pred,Correct,TP,TN,FP,FN)
    return TP, TN, FP, FN
 end
 
+function MaxPool(Clas,Correct,TP,TN,FP,FN)
+   for i = 1:length(Correct)
+      predc = findmax(Clas[:,:,:,i])[2][2]
+      truc = findmax(Correct[i])[2][2]
+      if predc == truc
+         TP += 1
+         TN += (length(Correct[i])-1)
+      else
+         FP += 1
+         FN += 1
+         TN += (length(Correct[i])-2)
+      end
+   end
+   return TP, TN, FP, FN
+end
 
+function Consensus(Clas,Correct,TP,TN,FP,FN)
+   for i = 1:length(Correct)
+      premod = []
+      for j = 1:size(Clas)[3]
+         push!(premod,findmax(Clas[:,:,j,i])[2][2])
+      end
+      predc = mode(premod)
+      truc = findmax(Correct[i])[2][2]
+      if predc == truc
+         TP += 1
+         TN += (length(Correct[i])-1)
+      else
+         FP += 1
+         FN += 1
+         TN += (length(Correct[i])-2)
+      end
+   end
+   return TP, TN, FP, FN
+end
 
 #Sigmoid function transforms data so it is either 0 or 1 used for binary classification
 function Sigmoid(x)
@@ -234,15 +268,16 @@ function LSTMBackwards(dh_next,ds_next,Cache,Params)
       dbq_step[:,:,i] = repeat([sum(q_temp)],size(q_temp)[1],size(q_temp)[2])
       #input transform e
       de_step = dot.(ds_next[:,:,i], Cache["g_t"][i])
-      dsigmoid_e = SigmoidDiff.(Cache["e_t"][i])
-      e_temp = dot.(de_step, dsigmoid_e)
+      #dsigmoid_e = SigmoidDiff.(Cache["e_t"][i])
+      dtanh_e = TanhDiff.(Cache["e_t"][i])
+      e_temp = dot.(de_step,dtanh_e)
       dUe_step[:,:,i] = transpose(e_temp) * transpose(Cache["x_t"][i])
       dWe_step[:,:,i] = transpose(e_temp) * Cache["h_prev"][:,:,i]
       dbe_step[:,:,i] = repeat([sum(e_temp)],size(e_temp)[1],size(e_temp)[2])
       #gradient w.r.t previous state h_prev
       dh_prev[:,:,i] = dot.(dh_next[:,:,i], dot.(tanh_s[:,:,i], dsigmoid_q))* Params["Wq"][i] +
       dot.(ds_next[:,:,i],dot.(Cache["s_prev"][i],dsigmoid_f)) * Params["Wf"][i]+
-      dot.(ds_next[:,:,i],dot.(Cache["g_t"][i],dsigmoid_e)) * Params["We"][i] +
+      dot.(ds_next[:,:,i],dot.(Cache["g_t"][i],dtanh_e)) * Params["We"][i] +
       dot.(ds_next[:,:,i],dot.(Cache["e_t"][i],dsigmoid_g)) * Params["Wg"][i]
       ds_prev[:,:,i] = dot.(Cache["f_t"][i],ds_next[:,:,i])
    end
@@ -361,7 +396,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,P
          lstm_mems[f] = zeros(a,b,c)
       end
    end
-   print("Beginning Training")
+   print("\n","Beginning Training")
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
@@ -393,7 +428,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,P
       for j = perc90:batchlen:(length(Data)-batchlen)
          Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
+         TP, TN, FP, FN = Consensus(Clas,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
          if (j+6) == length(Data)
             print("\n",TP)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,

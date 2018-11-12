@@ -1,3 +1,5 @@
+using JLD
+
 TrainingData = CSV.read("TrainingData.csv";header = true, delim = ",")
 
 TData,Clasis = CreateTraining(TrainingData[1:207000,:],100,[6,7,8],[10])
@@ -7,7 +9,7 @@ for i = 600:600:nrow(TrainingData)
         push!(incor,i)
     end
 end
-Params = initialiseLSTM(100,100,5,2)
+Params = initialiseLSTM(100,100,5,3)
 TP, TN, FP, FN = 0,0,0,0
 lstm_mems = Dict()
 kyz = collect(keys(Params))
@@ -18,7 +20,7 @@ end
 CurrentOrder = BootstrapDat(TData,6,100)
 Data = CreateDataArray(CurrentOrder,TData)
 Correct = CreateCorrectArray(CurrentOrder,TData)
-DataNorm = MinMaxNormalise(Data)
+#DataNorm = MinMaxNormalise(Data)
 for i = 1:100
     Fwh,Fwcache = LSTMForwardPass(Data[1:6],Params)
     the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
@@ -41,9 +43,12 @@ for i = 1:100
     end
 end
 
-TrainedModel2,mems2 = TrainLSTM(TData,100,150,6,5,[6,7,8],1000,0.1,TrainedModel2,mems2)
-save("TrainedWeights2.jld", TrainedModel2)
-save("Mems2.jld",mems2)
+TrainedModel3 = load("TrainedWeights3.jld")
+mems3 = load("Mems3.jld")
+
+TrainedModel3,mems3 = TrainLSTM(TData,100,150,6,5,[6,7,8],2,0.1,TrainedModel3,mems3)
+save("TrainedWeights3.jld", TrainedModel3)
+save("Mems3.jld",mems3)
 
 ##standardscalar
 #-1,1 normalisation
