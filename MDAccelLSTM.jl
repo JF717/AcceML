@@ -54,8 +54,7 @@ function CreateDataArray(Order,dict)
 end
 
 function MinMaxNormalise(DatatoN)
-   DatatoNcop = copy(DatatoN)
-   DataNormed = zeros()
+   DatatoNcop = deepcopy(DatatoN)
    for i = 1:length(DatatoNcop)
       for j = 1:size(DatatoNcop[i])[3]
          for k = 1:length(DatatoNcop[i][j])
@@ -64,6 +63,18 @@ function MinMaxNormalise(DatatoN)
       end
    end
    return DatatoNcop
+end
+
+function znormalise(Dataforz)
+   Dat = deepcopy(Dataforz)
+   for i = 1:length(Dat)
+      for j = 1:size(Dat[i])[3]
+         for k = 1:length(Dat[i][j])
+            Dat[i][j][k] = (Dat[i][j][k] - mean(Dat[i][j]))/std(Dat[i][j])
+         end
+      end
+   end
+   return Dat
 end
 
 function CreateCorrectArray(Order,dict)
@@ -401,16 +412,17 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,P
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
+      Dat = znormalise(Data)
       #DataNorm = MinMaxNormalise(Data)
       TP = 0
       TN = 0
       FP = 0
       FN = 0
-      perc90 = convert(Int64,(length(Data)*0.9)+(batchlen/2))
+      perc90 = convert(Int64,(length(Dat)*0.9)+(batchlen/2))
       #counter = 1
       for j = 1:batchlen:(perc90-batchlen)
          #counter += 1
-         Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
+         Fwh,Fwcache = LSTMForwardPass(Dat[j:(j+batchlen-1)],Params)
          #print("\n",size(Fwh))
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          loss,dtheta = softmaxloss(the,Correct[j:(j+batchlen-1)])
@@ -425,8 +437,8 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,P
             Params[k] += - (LR * (all_grads[k]) ./ (sqrt.(lstm_mems[k]) .+ 1e-8))
          end
       end
-      for j = perc90:batchlen:(length(Data)-batchlen)
-         Fwh,Fwcache = LSTMForwardPass(Data[j:(j+batchlen-1)],Params)
+      for j = perc90:batchlen:(length(Dat)-batchlen)
+         Fwh,Fwcache = LSTMForwardPass(Dat[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          TP, TN, FP, FN = Consensus(Clas,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
          if (j+6) == length(Data)
