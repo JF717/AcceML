@@ -5,11 +5,12 @@ using DataFrames
 using Distributions
 using LinearAlgebra
 using Random
+using Base.Iterators
 
 #function to take labeled training data csv and produce
 #the training data required for the LSTM
 function CreateTraining(Data,TSlen,features,correct)
-   Datacop = copy(Data)
+   Datacop = deepcopy(Data)
    TrainDat = Dict()
    counter = 1
    Classifiers = convert(Array,unique(Datacop[correct]))
@@ -18,7 +19,7 @@ function CreateTraining(Data,TSlen,features,correct)
       for j = 1:length(features)
           push!(curdat,Datacop[i:i+(TSlen-1),features[j]])
       end
-      curdat = reshape(hcat.(curdat),1,:,3)
+      curdat = reshape(hcat.(curdat),1,:,length(features))
       Class = convert(Array,Datacop[i,correct])
       TrainDat[counter] = [curdat,Class]
       counter +=1
@@ -65,16 +66,40 @@ function MinMaxNormalise(DatatoN)
    return DatatoNcop
 end
 
-function znormalise(Dataforz)
+function znormalise(Dataforz,features)
    Dat = deepcopy(Dataforz)
    for i = 1:length(Dat)
-      for j = 1:size(Dat[i])[3]
+      for j = 1:length(features)
          for k = 1:length(Dat[i][j])
             Dat[i][j][k] = (Dat[i][j][k] - mean(Dat[i][j]))/std(Dat[i][j])
          end
       end
    end
    return Dat
+end
+
+function AddMeanFeature(FullData,Feature,TSlen)
+   Data = deepcopy(FullData)
+   feat = []
+   for i = 1:TSlen:(length(Data[Feature]))
+      push!(feat,repeat([mean(Data[Feature][i:(i+TSlen-1)])],100))
+   end
+   fullfeat = collect(Iterators.Flatten(feat))
+   Data[:Temp] = fullfeat
+   print("New Feature is named Temp please rename with rename!(Data, :Temp => :Name)")
+   return Data
+end
+
+function AddVarFeature(FullData,Feature,TSlen)
+   Data = deepcopy(FullData)
+   feat = []
+   for i = 1:TSlen:(length(Data[Feature]))
+      push!(feat,repeat([var(Data[Feature][i:(i+TSlen-1)])],100))
+   end
+   fullfeat = collect(Iterators.Flatten(feat))
+   Data[:Temp] = fullfeat
+   print("New Feature is named Temp please rename with rename!(Data, :Temp => :Name)")
+   return Data
 end
 
 function CreateCorrectArray(Order,dict)
@@ -392,10 +417,10 @@ function LSTMAfflineBW(dtheta,Cache)
    return dh,dU2,db2
 end
 
-function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1,PreviousModel = Nothing::Any, PreviousMems = Nothing::Any)
+function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,ToNorm,LR = 1, PreviousModel = Nothing::Any, PreviousMems = Nothing::Any)
    if typeof(PreviousModel) != DataType
-      Params = copy(PreviousModel)
-      lstm_mems = copy(PreviousMems)
+      Params = deepcopy(PreviousModel)
+      lstm_mems = deepcopy(PreviousMems)
       print("Using Previous Weights")
    else
       print("Initialising Weights")

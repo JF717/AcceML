@@ -1,14 +1,17 @@
 using JLD
 
 TrainingData = CSV.read("TrainingData.csv";header = true, delim = ",")
+TrainingData2 = AddMeanFeature(TrainingData,4,100)
+rename!(TrainingData2, :Temp => :MeanX)
 
-TData,Clasis = CreateTraining(TrainingData[1:207000,:],100,[6,7,8],[10])
-incor = []
-for i = 600:600:nrow(TrainingData)
-    if TrainingData[i,9] != TrainingData[i-599,9]
-        push!(incor,i)
-    end
-end
+TrainingData3 = AddMeanFeature(TrainingData2,5,100)
+rename!(TrainingData3, :Temp => :MeanY)
+
+TrainingData4 = AddVarFeature(TrainingData3,4,100)
+rename!(TrainingData4, :Temp => :VarX)
+
+TData,Clasis = CreateTraining(TrainingData4[1:207000,:],100,[4,5,6,10,11,12],[8])
+
 Params = initialiseLSTM(100,100,5,3)
 TP, TN, FP, FN = 0,0,0,0
 lstm_mems = Dict()
@@ -46,7 +49,7 @@ end
 TrainedModel3 = load("TrainedWeights3.jld")
 mems3 = load("Mems3.jld")
 
-TrainedModel3,mems3 = TrainLSTM(TData,100,150,6,5,[6,7,8],2,0.1,TrainedModel3,mems3)
+TrainedModel4,mems4 = TrainLSTM(TData,100,150,6,5,[6,7,8],50,0.1,TrainedModel4,mems4)
 save("TrainedWeights3.jld", TrainedModel3)
 save("Mems3.jld",mems3)
 
