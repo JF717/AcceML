@@ -619,27 +619,27 @@ end
 
 ##### time to build an lstm RNN
 
-function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass)
-   We = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
-   Wf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
-   Wg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
-   Wq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)),sizehiddenlayer,sizehiddenlayer)
+function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
+   We = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
+   Wf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
+   Wg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
+   Wq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * sizehiddenlayer)*dims),sizehiddenlayer,sizehiddenlayer,dims)
 #
-   be = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
-   bf = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
-   bg = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
-   bq = rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),1,sizehiddenlayer)
+   be = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bg = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
+   bq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims,sizehiddenlayer),1,sizehiddenlayer,3)
 #
-   Ue = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
-   Uf=reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
-   Ug= reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
-   Uq= reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)),sizehiddenlayer,lengthinput)
+   Ue = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
+   Uf = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
+   Ug = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
+   Uq = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(sizehiddenlayer * lengthinput)*dims),sizehiddenlayer,lengthinput,dims)
 #
-   h_0 = zeros(1,sizehiddenlayer)
-   s_0 = zeros(1,sizehiddenlayer)
-   #
-   U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)),numberofclass,sizehiddenlayer)
-   b2 = rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),1,numberofclass)
+   h_0 = reshape(zeros(1,sizehiddenlayer,dims),1,sizehiddenlayer,dims)
+   s_0 = reshape(zeros(1,sizehiddenlayer,dims),1,sizehiddenlayer,dims)
+#
+   U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)*dims),numberofclass,sizehiddenlayer,dims)
+   b2 = reshape(rand(Uniform(-1/sqrt(numberofclass),1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,3)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
@@ -647,6 +647,7 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass)
 end
 
 function LSTMForward(x_t,h_prev,s_prev,Params)
+
    # compute gate values
    f_t = Sigmoid.(Params["bf"] .+ (x_t * transpose(Params["Uf"])) + (h_prev * transpose(Params["Wf"])))
    e_t = tanh.(Params["be"] .+ (x_t * transpose(Params["Ue"])) + (h_prev * transpose(Params["We"])))
@@ -776,24 +777,28 @@ function LSTMAfflineBW(theta,y,yt,Cache)
    return dtheta,dh,dU,db2,loss
 end
 
-function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1)
+function TrainLSTM(InputDat,correct,hiddim,batchlen,Numclas,Report = -1,iter)
    Params = initialiseLSTM(size(Inputdat)[1],hiddim,Numclas)
    counter = 1
-   for i=1:batchlen:length(InputDat)
-      counter += 1
-      Fwh,Fwcache = LSTMForwardPass(InputDat[:,(i:i+batchlen)],Params)
-      Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-      dtheta,dh,dU,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
-      all_grads = LSTMBackwardProp(dh,Fwcache,Params)
-      all_grads["U"] = -dU
-      all_grads["b2"] = db2
-      kys = collect(keys(all_grads))
-      for (n, k) in enumerate(kys)
-         Params[k] = (Params[k] + all_grads[k])
-      end
-      if counter == Report
-         print(string("Loss is",loss))
-         counter = 1
+   for i = 1:iter
+      CurrentOrder = BootstrapDat(InputDat)
+
+      for i in CurrentOrder
+         counter += 1
+         Fwh,Fwcache = LSTMForwardPass(InputDat[:,(i:i+batchlen)],Params)
+         Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
+         dtheta,dh,dU,db2,loss = LSTMAfflineBW(Clas,the,Afcache)
+         all_grads = LSTMBackwardProp(dh,Fwcache,Params)
+         all_grads["U"] = -dU
+         all_grads["b2"] = db2
+         kys = collect(keys(all_grads))
+         for (n, k) in enumerate(kys)
+            Params[k] = (Params[k] + all_grads[k])
+         end
+         if counter == Report
+            print(string("Loss is",loss))
+            counter = 1
+         end
       end
    end
    return Params
