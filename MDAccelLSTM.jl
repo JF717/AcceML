@@ -417,7 +417,7 @@ function LSTMAfflineBW(dtheta,Cache)
    return dh,dU2,db2
 end
 
-function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,ToNorm,LR = 1, PreviousModel = Nothing::Any, PreviousMems = Nothing::Any)
+function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, PreviousModel = Nothing::Any, PreviousMems = Nothing::Any)
    if typeof(PreviousModel) != DataType
       Params = deepcopy(PreviousModel)
       lstm_mems = deepcopy(PreviousMems)
@@ -437,7 +437,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,ToNorm,L
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
-      Dat = znormalise(Data)
+      Dat = znormalise(Data,[1,2,3,13,14])
       #DataNorm = MinMaxNormalise(Data)
       TP = 0
       TN = 0
@@ -465,7 +465,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,ToNorm,L
       for j = perc90:batchlen:(length(Dat)-batchlen)
          Fwh,Fwcache = LSTMForwardPass(Dat[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-         TP, TN, FP, FN = Consensus(Clas,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
+         TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
          if (j+6) == length(Data)
             print("\n",TP)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,

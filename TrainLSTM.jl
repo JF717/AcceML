@@ -1,4 +1,9 @@
 using JLD
+using DSP
+
+responsetype = Highpass(1; fs=10)
+designmethod = Butterworth(4)
+filt(digitalfilter(responsetype, designmethod),)
 
 TrainingData = CSV.read("TrainingData.csv";header = true, delim = ",")
 TrainingData2 = AddMeanFeature(TrainingData,4,100)
@@ -10,7 +15,9 @@ rename!(TrainingData3, :Temp => :MeanY)
 TrainingData4 = AddVarFeature(TrainingData3,4,100)
 rename!(TrainingData4, :Temp => :VarX)
 
-TData,Clasis = CreateTraining(TrainingData4[1:207000,:],100,[4,5,6,10,11,12],[8])
+TrainingData4[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),TrainingData4[4],TrainingData4[5],TrainingData4[6])
+TrainingData4[:TotalG] = map((x,y,z) -> (x + y + z + 9.8),TrainingData4[4],TrainingData4[5],TrainingData4[6])
+TData,Clasis = CreateTraining(TrainingData4[1:207000,:],100,[4,5,6,13,14,10,11,12],[8])
 
 Params = initialiseLSTM(100,100,5,3)
 TP, TN, FP, FN = 0,0,0,0
@@ -49,13 +56,27 @@ end
 TrainedModel3 = load("TrainedWeights3.jld")
 mems3 = load("Mems3.jld")
 
-TrainedModel4,mems4 = TrainLSTM(TData,100,150,6,5,[6,7,8],50,0.1,TrainedModel4,mems4)
-save("TrainedWeights3.jld", TrainedModel3)
-save("Mems3.jld",mems3)
+TrainedMode6,mems6 = TrainLSTM(TData,100,100,6,5,[4,5,6,13,14,10,11,12],100,0.1,TrainedMode6,mems6)
 
+#all 3 raw + meanX meany and variancex got to same 60%
+save("TrainedModel6feat.jld", TrainedModel6feat)
+save("mems6feat.jld",mems6feat)
+#3 normalised + absolutue total across all 3 got to 60% quicker
+save("TrainedModelWithTot.jld", TrainedModelWithTot)
+save("memsWithTot.jld",memsWithTot)
+#3 normalised + abs tot and raw tot
+save("TrainedModel5.jld", TrainedMode5)
+save("mems5.jld",mems5)
+
+#all 3 + abs tot and tot normalised + meanx meany and varx
+save("TrainedMode6.jld", TrainedMode6)
+save("mems6.jld",mems6)
 ##standardscalar
-#-1,1 normalisation
-#features including mean and variance
+#-1,1 normalisation done
+#features including mean and variance done
 #z against min max
 #kaiser filtering
-#compare average to max pool to consensus
+#compare average to max pool to consensus done
+
+#Wavelet desnoising
+Collar10 = CSV.read("Collar10AccelCor.csv";header = true, delim = ",")
