@@ -82,7 +82,7 @@ function AddMeanFeature(FullData,Feature,TSlen)
    Data = deepcopy(FullData)
    feat = []
    for i = 1:TSlen:(length(Data[Feature]))
-      push!(feat,repeat([mean(Data[Feature][i:(i+TSlen-1)])],100))
+      push!(feat,repeat([mean(abs.(Data[Feature][i:(i+TSlen-1)]))],100))
    end
    fullfeat = collect(Iterators.Flatten(feat))
    Data[:Temp] = fullfeat
@@ -437,7 +437,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, 
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
-      Dat = znormalise(Data,[1,2,3,13,14])
+      Dat = znormalise(Data,[4,5,6,10])
       #DataNorm = MinMaxNormalise(Data)
       TP = 0
       TN = 0
@@ -466,7 +466,7 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, 
          Fwh,Fwcache = LSTMForwardPass(Dat[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
-         if (j+6) == length(Data)
+         if (j+6) == length(Dat)
             print("\n",TP)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,
             " Precision is ",((TP)/(TP + FP))*100,
