@@ -1,6 +1,6 @@
 using JLD
 using DSP
-
+using Plots
 #use a  Highpass low order Butterworth filter to filter with low delay
 responsetype = Highpass(1; fs=10)
 designmethod = Butterworth(1)
@@ -15,7 +15,7 @@ TrainingData[4] = clamp.(TrainingData[4],-25,25)
 TrainingData[5] = clamp.(TrainingData[5],-25,25)
 TrainingData[6] = clamp.(TrainingData[6],-25,25)
 #filter still has a 1 point delay, replace the first point with mean of seq
-for i = 1:100:length(TrainingData[4])
+for i = 1:100:length(TrainingData[4])-100
     TrainingData[4][i:i+2] .= mean(TrainingData[4][i+3:i+99])
     TrainingData[5][i:i+2] .= mean(TrainingData[5][i+3:i+99])
     TrainingData[6][i:i+2] .= mean(TrainingData[6][i+3:i+99])
@@ -33,9 +33,12 @@ end
 
 #TrainingData4[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),TrainingData4[4],TrainingData4[5],TrainingData4[6])
 #TrainingData4[:TotalG] = map((x,y,z) -> (x + y + z + 9.8),TrainingData4[4],TrainingData4[5],TrainingData4[6])
+TrainingData[:AbsX] = map((x) -> abs.(x),TrainingData[4])
+TrainingData[:AbsY] = map((x) -> abs.(x),TrainingData[5])
+TrainingData[:AbsZ] = map((x) -> abs.(x),TrainingData[6])
 
 TrainingData[:TotalG] = map((x,y,z) -> (x + y + z),TrainingData[4],TrainingData[5],TrainingData[6])
-TData,Clasis = CreateTraining(TrainingData[1:211800,:],100,[4,5,6,10],[8])
+TData,Clasis = CreateTraining(TrainingData,100,[4,5,6,10,11,12,13],[8])
 
 #Params = initialiseLSTM(100,100,5,3)
 #TP, TN, FP, FN = 0,0,0,0
@@ -71,10 +74,10 @@ TData,Clasis = CreateTraining(TrainingData[1:211800,:],100,[4,5,6,10],[8])
 #    end
 #end
 
-TrainedModel3 = load("TrainedWeights3.jld")
-mems3 = load("Mems3.jld")
+TrainedModel11 = load("TrainedModel11.jld")
+mems11 = load("Mems11.jld")
 
-TrainedModel10,mems10 = TrainLSTM(TData,100,100,6,5,[4,5,6,10],100,0.1)
+TrainedModel12,mems12,CM2 = TrainLSTM(TData,100,100,6,5,[4,5,6,10,11,12,13],100,0.1)
 
 #all 3 raw + meanX meany and variancex got to same 60%
 save("TrainedModel6feat.jld", TrainedModel6feat)
@@ -95,14 +98,8 @@ save("TrainedModel7.jld", TrainedModel7)
 save("mems7.jld",mems7)
 
 #filtered and then the delay removed for all 3 + total
-save("TrainedModel8.jld", TrainedModel7)
-save("mems8.jld",mems7)
-##standardscalar
-#-1,1 normalisation done
-#features including mean and variance done
-#z against min max
-#kaiser filtering
-#compare average to max pool to consensus done
+save("TrainedModel11.jld", TrainedModel11)
+save("mems11.jld",mems11)
 
-#Wavelet desnoising
+
 Collar10 = CSV.read("Collar10AccelCor.csv";header = true, delim = ",")

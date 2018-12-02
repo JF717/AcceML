@@ -111,6 +111,16 @@ function CreateCorrectArray(Order,dict)
    return CorrData
 end
 
+function ConfusionMat(pred,Correct,CM)
+   for i = 1:length(Correct)
+      predc = findmax(pred[:,:,i])[2][2]
+      truc = findmax(Correct[i])[2][2]
+      CM[predc,truc] += 1
+   end
+   return CM
+end
+
+
 function RightWrong(pred,Correct,TP,TN,FP,FN)
    for i = 1:length(Correct)
       predc = findmax(pred[:,:,i])[2][2]
@@ -203,10 +213,11 @@ function initialiseLSTM(lengthinput,sizehiddenlayer,numberofclass,dims)
 #
    U = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),(numberofclass * sizehiddenlayer)*dims),numberofclass,sizehiddenlayer,dims)
    b2 = reshape(rand(Uniform(0,1/sqrt(numberofclass)),dims,numberofclass),1,numberofclass,dims)
+   U2 = reshape(rand(Uniform(-1/sqrt(sizehiddenlayer),1/sqrt(sizehiddenlayer)),dims),dims,1)
 #
    return    params = Dict([("We",We),("Wf",Wf),("Wg",Wg),("Wq",Wq),
    ("be",be),("bf",bf),("bg",bg),("bq",bq),
-   ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),("h_0", h_0),("s_0",s_0),("U",U),("b2",b2)])
+   ("Ue",Ue),("Uf",Uf),("Ug",Ug),("Uq",Uq),("h_0", h_0),("s_0",s_0),("U",U),("b2",b2),("U2",U2)])
 end
 
 function LSTMForward(x_t,h_prev,s_prev,Params)
@@ -432,18 +443,20 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, 
          lstm_mems[f] = zeros(a,b,c)
       end
    end
+   CM = zeros(Numclas,Numclas)
    print("\n","Beginning Training")
    for i = 1:iter
       CurrentOrder = BootstrapDat(InputDat,batchlen,TSlen)
       Data = CreateDataArray(CurrentOrder,InputDat)
       Correct = CreateCorrectArray(CurrentOrder,InputDat)
-      Dat = znormalise(Data,[4,5,6,10])
+      Dat = znormalise(Data,[4,5,6,10,11,12,13])
       #DataNorm = MinMaxNormalise(Data)
       TP = 0
       TN = 0
       FP = 0
       FN = 0
-      perc90 = convert(Int64,floor((length(Dat)*0.9))+batchlen/3)
+      CM = zeros(Numclas,Numclas)
+      perc90 = convert(Int64,round((length(Dat)*0.9))-5)
       #counter = 1
       for j = 1:batchlen:(perc90-batchlen)
          #counter += 1
@@ -466,15 +479,16 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, 
          Fwh,Fwcache = LSTMForwardPass(Dat[j:(j+batchlen-1)],Params)
          the,Clas,Afcache,preds = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
          TP, TN, FP, FN = RightWrong(preds,Correct[j:(j+batchlen-1)],TP,TN,FP,FN)
+         CM = ConfusionMat(preds,Correct[j:(j+batchlen-1)],CM)
          if (j+6) == length(Dat)
             print("\n",TP)
             print("\n","Iteration ", i, " Accuracy is ",((TP+TN)/(TP +TN + FP +FN))*100,
-            " Precision is ",((TP)/(TP + FP))*100,
-            " Recall is ", (TP/(TP + FN)*100))
+            " TP rate is ",((TP)/(TP + FN)),
+            " FP Rate is ", ((FP)/(FP + TN)))
          end
       end
    end
-   return Params, lstm_mems
+   return Params, lstm_mems, CM
 end
 
 function RunLSTM(InputDat,hiddim,batchlen,Numclas,TrainedWeights)
