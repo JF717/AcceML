@@ -572,14 +572,42 @@ function TrainLSTM(InputDat,TSlen,hiddim,batchlen,Numclas,features,iter,LR = 1, 
    return Params, lstm_mems, CM
 end
 
-function RunLSTM(InputDat,hiddim,batchlen,Numclas,TrainedWeights)
+function CreateClassData(InputData,Features,TSLen)
+   Datacop = deepcopy(InputData)
+   ClassDat = Dict()
+   counter = 1
+   for i = 1:TSLen:Int64(((100 * round(nrow(InputData)/100))-100))
+      curdat = []
+      for j = 1:length(Features)
+          push!(curdat,Datacop[i:i+(TSLen-1),Features[j]])
+      end
+      curdat = reshape(hcat.(curdat),1,:,length(Features))
+      ClassDat[counter] = [string(InputData[counter,2],"-",InputData[counter,3]),curdat]
+      counter +=1
+   end
+   return(ClassDat)
+end
+
+function CreateClasDataArray(dict)
+   dictcop2 = deepcopy(dict)
+   ClasData = []
+   for i = 1:length(dictcop2)
+      push!(ClasData,dictcop2[i][2])
+   end
+   return ClasData
+end
+
+
+function RunLSTM(InputDat,TSLen,Features,batchlen,Numclas,TrainedWeights)
    Params = TrainedWeights
-   classedDat = InputDat
-   for i=1:length(InputDat):batchlen
-      Fwh,Fwcache = LSTMForwardPass(InputDat[i:i+batchlen],Params)
-      Clas,the,Afcache = LSTMAfflineFW(Fwh,Params["U"],Params["b2"])
-      for j = i:batchlen
-         push!(classedDat[j],argmax(Clas)[2])
+   classedDat = DataFrame(DateTime = String[],Behaviour = Int8[])
+   classDatdict = CreateClassData(InputDat,Features,TSLen)
+   clasData = CreateClasDataArray(classDatdict)
+   for i=1:batchlen:length(clasData)-6
+      Fwh,Fwcache = LSTMForwardPass(clasData[i:i+batchlen-1],Params)
+      the,Afcache,Clas = LSTMAfflineFW2(Fwh,Params["U"],Params["U2"],Params["b2"],Params["b3"])
+      for j = 1:batchlen
+         classedDat = vcat(classedDat,DataFrame(DateTime = (classDatdict[i + j - 1][1]), Behaviour = (argmax(Clas[:,:,j])[2])))
       end
    end
    return classedDat
