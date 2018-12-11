@@ -206,3 +206,152 @@ Collar2[:TotalG] = map((x,y,z) -> (x + y + z),Collar2[4],Collar2[5],Collar2[6])
 Collar2[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar2[4],Collar2[5],Collar2[6])
 Classed2 =  RunLSTM(Collar2,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
 histogram(Classed2[2])
+
+Collar3 = CSV.read("Collar3AccelCor.csv";header = true, delim = ",")
+Collar3[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar3[4]))
+Collar3[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar3[5]))
+Collar3[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar3[6]))
+
+#Collar10[4] = clamp.(Collar10[10],-25,25)
+#Collar10[5] = clamp.(Collar10[11],-25,25)
+#Collar10[6] = clamp.(Collar10[12],-25,25)
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar3[7])-100
+    Collar3[7][i:i+2] .= mean(Collar3[7][i+3:i+99])
+    Collar3[8][i:i+2] .= mean(Collar3[8][i+3:i+99])
+    Collar3[9][i:i+2] .= mean(Collar3[9][i+3:i+99])
+end
+
+
+Collar3[:TotalG] = map((x,y,z) -> (x + y + z),Collar3[4],Collar3[5],Collar3[6])
+Collar3[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar3[4],Collar3[5],Collar3[6])
+Classed3 =  RunLSTM(Collar3,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed3[2])
+
+
+Collar4 = CSV.read("Collar4AccelCor.csv";header = true, delim = ",")
+Collar4[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar4[4]))
+Collar4[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar4[5]))
+Collar4[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar4[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar4[7])-100
+    Collar4[7][i:i+2] .= mean(Collar4[7][i+3:i+99])
+    Collar4[8][i:i+2] .= mean(Collar4[8][i+3:i+99])
+    Collar4[9][i:i+2] .= mean(Collar4[9][i+3:i+99])
+end
+
+
+Collar4[:TotalG] = map((x,y,z) -> (x + y + z),Collar4[4],Collar4[5],Collar4[6])
+Collar4[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar4[4],Collar4[5],Collar4[6])
+Classed4 =  RunLSTM(Collar4,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed4[2])
+
+Collar7 = CSV.read("Collar7AccelCor.csv";header = true, delim = ",")
+Collar7[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar7[4]))
+Collar7[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar7[5]))
+Collar7[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar7[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar7[7])-100
+    Collar7[7][i:i+2] .= mean(Collar7[7][i+3:i+99])
+    Collar7[8][i:i+2] .= mean(Collar7[8][i+3:i+99])
+    Collar7[9][i:i+2] .= mean(Collar7[9][i+3:i+99])
+end
+
+
+Collar7[:TotalG] = map((x,y,z) -> (x + y + z),Collar7[4],Collar7[5],Collar7[6])
+Collar7[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar7[4],Collar7[5],Collar7[6])
+Classed7 =  RunLSTM(Collar7,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed7[2])
+
+Collar8 = CSV.read("Collar8AccelCor.csv";header = true, delim = ",")
+Collar8[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar8[4]))
+Collar8[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar8[5]))
+Collar8[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar8[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar8[7])-100
+    Collar8[7][i:i+2] .= mean(Collar8[7][i+3:i+99])
+    Collar8[8][i:i+2] .= mean(Collar8[8][i+3:i+99])
+    Collar8[9][i:i+2] .= mean(Collar8[9][i+3:i+99])
+end
+
+
+Collar8[:TotalG] = map((x,y,z) -> (x + y + z),Collar8[4],Collar8[5],Collar8[6])
+Collar8[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar8[4],Collar8[5],Collar8[6])
+Classed8 =  RunLSTM(Collar8,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed8[2])
+
+Collar9 = CSV.read("Collar9AccelCor.csv";header = true, delim = ",")
+Collar9[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9[4]))
+Collar9[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9[5]))
+Collar9[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar9[7])-100
+    Collar9[7][i:i+2] .= mean(Collar9[7][i+3:i+99])
+    Collar9[8][i:i+2] .= mean(Collar9[8][i+3:i+99])
+    Collar9[9][i:i+2] .= mean(Collar9[9][i+3:i+99])
+end
+
+
+Collar9[:TotalG] = map((x,y,z) -> (x + y + z),Collar9[4],Collar9[5],Collar9[6])
+Collar9[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar9[4],Collar9[5],Collar9[6])
+Classed9 =  RunLSTM(Collar9,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed9[2])
+
+Collar12 = CSV.read("Collar12AccelCor.csv";header = true, delim = ",")
+Collar12[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12[4]))
+Collar12[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12[5]))
+Collar12[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar12[7])-100
+    Collar12[7][i:i+2] .= mean(Collar12[7][i+3:i+99])
+    Collar12[8][i:i+2] .= mean(Collar12[8][i+3:i+99])
+    Collar12[9][i:i+2] .= mean(Collar12[9][i+3:i+99])
+end
+
+
+Collar12[:TotalG] = map((x,y,z) -> (x + y + z),Collar12[4],Collar12[5],Collar12[6])
+Collar12[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar12[4],Collar12[5],Collar12[6])
+Classed12 =  RunLSTM(Collar12,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed12[2])
+
+Collar13 = CSV.read("Collar13AccelCor.csv";header = true, delim = ",")
+Collar13[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar13[4]))
+Collar13[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar13[5]))
+Collar13[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar13[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar13[7])-100
+    Collar13[7][i:i+2] .= mean(Collar13[7][i+3:i+99])
+    Collar13[8][i:i+2] .= mean(Collar13[8][i+3:i+99])
+    Collar13[9][i:i+2] .= mean(Collar13[9][i+3:i+99])
+end
+
+
+Collar13[:TotalG] = map((x,y,z) -> (x + y + z),Collar13[4],Collar13[5],Collar13[6])
+Collar13[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar13[4],Collar13[5],Collar13[6])
+Classed13 =  RunLSTM(Collar13,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed13[2])
+
+
+Collar14 = CSV.read("Collar14AccelCor.csv";header = true, delim = ",")
+Collar14[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14[4]))
+Collar14[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14[5]))
+Collar14[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14[6]))
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar14[7])-100
+    Collar14[7][i:i+2] .= mean(Collar14[7][i+3:i+99])
+    Collar14[8][i:i+2] .= mean(Collar14[8][i+3:i+99])
+    Collar14[9][i:i+2] .= mean(Collar14[9][i+3:i+99])
+end
+
+
+Collar14[:TotalG] = map((x,y,z) -> (x + y + z),Collar14[4],Collar14[5],Collar14[6])
+Collar14[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar14[4],Collar14[5],Collar14[6])
+Classed14 =  RunLSTM(Collar14,100,[4,5,6,7,8,9,10,11],6,5,TrainedModel14)
+histogram(Classed14[2])
