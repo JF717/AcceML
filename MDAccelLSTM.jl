@@ -582,7 +582,7 @@ function CreateClassData(InputData,Features,TSLen)
           push!(curdat,Datacop[i:i+(TSLen-1),Features[j]])
       end
       curdat = reshape(hcat.(curdat),1,:,length(Features))
-      ClassDat[counter] = [string(InputData[counter,2],"-",InputData[counter,3]),curdat]
+      ClassDat[counter] = [string(InputData[i,2],"-",InputData[i,3]),curdat]
       counter +=1
    end
    return(ClassDat)
@@ -607,7 +607,7 @@ function RunLSTM(InputDat,TSLen,Features,batchlen,Numclas,TrainedWeights)
       Fwh,Fwcache = LSTMForwardPass(clasData[i:i+batchlen-1],Params)
       the,Afcache,Clas = LSTMAfflineFW2(Fwh,Params["U"],Params["U2"],Params["b2"],Params["b3"])
       for j = 1:batchlen
-         classedDat = vcat(classedDat,DataFrame(DateTime = (classDatdict[i + j - 1][1]), Behaviour = (argmax(Clas[:,:,j])[2])))
+         classedDat = vcat(classedDat,DataFrame(DateTime = (classDatdict[(i + j - 1)][1]), Behaviour = (argmax(Clas[:,:,j])[2])))
       end
    end
    return classedDat

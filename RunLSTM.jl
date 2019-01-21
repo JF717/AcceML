@@ -1,105 +1,11 @@
 using JLD
 using DSP
 using Plots
-#use a  Highpass low order Butterworth filter to filter with low delay
+
 responsetype = Highpass(1; fs=10)
 designmethod = Butterworth(1)
 
-
-TrainingData = CSV.read("TrainingData.csv";header = true, delim = ",")
-TrainingData[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},TrainingData[4]))
-TrainingData[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},TrainingData[5]))
-TrainingData[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},TrainingData[6]))
-
-TrainingData[4] = clamp.(TrainingData[10],-25,25)
-TrainingData[5] = clamp.(TrainingData[11],-25,25)
-TrainingData[6] = clamp.(TrainingData[12],-25,25)
-#filter still has a 1 point delay, replace the first point with mean of seq
-for i = 1:100:length(TrainingData[10])-100
-    TrainingData[10][i:i+2] .= mean(TrainingData[10][i+3:i+99])
-    TrainingData[11][i:i+2] .= mean(TrainingData[11][i+3:i+99])
-    TrainingData[12][i:i+2] .= mean(TrainingData[12][i+3:i+99])
-end
-
-
-#TrainingData2 = AddMeanFeature(TrainingData,4,100)
-#rename!(TrainingData2, :Temp => :MeanX)
-
-#TrainingData3 = AddMeanFeature(TrainingData2,5,100)
-#rename!(TrainingData3, :Temp => :MeanY)
-
-#TrainingData4 = AddVarFeature(TrainingData3,4,100)
-#rename!(TrainingData4, :Temp => :VarX)
-
-TrainingData[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),TrainingData[4],TrainingData[5],TrainingData[6])
-TrainingData[:TotalG] = map((x,y,z) -> (x + y + z + 9.8),TrainingData[4],TrainingData[5],TrainingData[6])
-TrainingData[:AbsX] = map((x) -> abs.(x),TrainingData[4])
-TrainingData[:AbsY] = map((x) -> abs.(x),TrainingData[5])
-TrainingData[:AbsZ] = map((x) -> abs.(x),TrainingData[6])
-
-TrainingData[:TotalG] = map((x,y,z) -> (x + y + z + 9.8),TrainingData[4],TrainingData[5],TrainingData[6])
-TData,Clasis = CreateTraining(TrainingData,100,[4,5,6,10,11,12,13,14],[8])
-
-# Params = initialiseLSTM(100,100,5,8)
-# TP, TN, FP, FN = 0,0,0,0
-# lstm_mems = Dict()
-# kyz = collect(keys(Params))
-# for (n, f) in enumerate(kyz)
-#     a,b,c = size(Params[f])
-#     lstm_mems[f] = zeros(a,b,c)
-# end
-# CurrentOrder = BootstrapDat(TData,6,100)
-# Data = CreateDataArray(CurrentOrder,TData)
-# Correct = CreateCorrectArray(CurrentOrder,TData)
-# #DataNorm = MinMaxNormalise(Data)
-# #for i = 1:100
-# Fwh,Fwcache = LSTMForwardPass(Data[1:6],Params)
-# the,Afcache,preds = LSTMAfflineFW2(Fwh,Params["U"],Params["U2"],Params["b2"],Params["b3"])
-# #    #TP, TN, FP, FN = RightWrong(preds,Correct[1:6],TP,TN,FP,FN)
-# loss,dtheta = softmaxloss2(the,Correct[1:6])
-# dh,dh2,dU,dU2,db2,db3 = LSTMAfflineBW2(dtheta,Afcache)
-# all_grads = LSTMBackwardProp(dh,Fwcache,Params)
-#    all_grads["U"] = dU
-#    all_grads["b2"] = db2
-    #lstm_mems = Dict()
-#    kys = collect(keys(all_grads))
-#    #for (n, f) in enumerate(kys)
-    #a,b,c = size(Params[f])
-    #lstm_mems[f] = zeros(a,b,c)
-    #end
-#    for (n, k) in enumerate(kys)
-    #all_grads[k] = clamp.(all_grads[k],-0.1,0.1)
-#    lstm_mems[k] += dot.(all_grads[k],all_grads[k])
-#    Params[k] += - (LR * all_grads[k]) ./ (sqrt.(lstm_mems[k]) .+ 1e-8)
-#    end
-#end
-
 TrainedModel14 = load("TrainedModel14.jld")
-mems14 = load("Mems14.jld")
-
-TrainedModel14,mems14,CM4 = TrainLSTM(TData,100,100,6,5,[4,5,6,10,11,12,13,14],1,0.1,TrainedModel14,mems14)
-
-#all 3 raw + meanX meany and variancex got to same 60%
-save("TrainedModel6feat.jld", TrainedModel6feat)
-save("mems6feat.jld",mems6feat)
-#3 normalised + absolutue total across all 3 got to 60% quicker
-save("TrainedModelWithTot.jld", TrainedModelWithTot)
-save("memsWithTot.jld",memsWithTot)
-#3 normalised + abs tot and raw tot
-save("TrainedModel5.jld", TrainedMode5)
-save("mems5.jld",mems5)
-
-#all 3 + abs tot and tot normalised + meanx meany and varx
-save("TrainedMode6.jld", TrainedMode6)
-save("mems6.jld",mems6)
-
-#filtered all 3 + filtered combined.
-save("TrainedModel7.jld", TrainedModel7)
-save("mems7.jld",mems7)
-
-#filtered and then the delay removed for all 3 + total
-save("TrainedModel14.jld", TrainedModel14)
-save("mems14.jld",mems14)
 
 
 Collar6 = CSV.read("Collar6AccelCor.csv";header = true, delim = ",")
@@ -369,3 +275,167 @@ CSV.write("ClassedCollarData10.csv",Classed10)
 CSV.write("ClassedCollarData12.csv",Classed12)
 CSV.write("ClassedCollarData13.csv",Classed13)
 CSV.write("ClassedCollarData14.csv",Classed14)
+
+##### wet season
+cd("$(homedir())/Desktop/Work/Collars")
+Collar1Wet = CSV.read("collar #1/ACCLOG00.csv";header = true, delim = ",")
+Collar1Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar1Wet[3]))
+Collar1Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar1Wet[4]))
+Collar1Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar1Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar1Wet[7])-100
+    Collar1Wet[6][i:i+2] .= mean(Collar1Wet[6][i+3:i+99])
+    Collar1Wet[7][i:i+2] .= mean(Collar1Wet[7][i+3:i+99])
+    Collar1Wet[8][i:i+2] .= mean(Collar1Wet[8][i+3:i+99])
+end
+
+
+Collar1Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar1Wet[3],Collar1Wet[4],Collar1Wet[5])
+Collar1Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar1Wet[3],Collar1Wet[4],Collar1Wet[5])
+Classed1Wet =  RunLSTM(Collar1Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar2Wet = CSV.read("collar #2/ACCLOG00.csv";header = true, delim = ",")
+Collar2Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar2Wet[3]))
+Collar2Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar2Wet[4]))
+Collar2Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar2Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar2Wet[6])-100
+    Collar2Wet[6][i:i+2] .= mean(Collar2Wet[6][i+3:i+99])
+    Collar2Wet[7][i:i+2] .= mean(Collar2Wet[7][i+3:i+99])
+    Collar2Wet[8][i:i+2] .= mean(Collar2Wet[8][i+3:i+99])
+end
+
+
+Collar2Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar2Wet[3],Collar2Wet[4],Collar2Wet[5])
+Collar2Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar2Wet[3],Collar2Wet[4],Collar2Wet[5])
+Classed2Wet =  RunLSTM(Collar2Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar5Wet = CSV.read("collar #5/ACCLOG00.csv";header = true, delim = ",")
+Collar5Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar5Wet[3]))
+Collar5Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar5Wet[4]))
+Collar5Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar5Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar5Wet[7])-100
+    Collar5Wet[6][i:i+2] .= mean(Collar5Wet[6][i+3:i+99])
+    Collar5Wet[7][i:i+2] .= mean(Collar5Wet[7][i+3:i+99])
+    Collar5Wet[8][i:i+2] .= mean(Collar5Wet[8][i+3:i+99])
+end
+
+
+Collar5Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar5Wet[3],Collar5Wet[4],Collar5Wet[5])
+Collar5Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar5Wet[3],Collar5Wet[4],Collar5Wet[5])
+Classed5Wet =  RunLSTM(Collar5Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar9Wet = CSV.read("collar #9/ACCLOG00.csv";header = true, delim = ",")
+Collar9Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9Wet[3]))
+Collar9Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9Wet[4]))
+Collar9Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar9Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar9Wet[7])-100
+    Collar9Wet[6][i:i+2] .= mean(Collar9Wet[6][i+3:i+99])
+    Collar9Wet[7][i:i+2] .= mean(Collar9Wet[7][i+3:i+99])
+    Collar9Wet[8][i:i+2] .= mean(Collar9Wet[8][i+3:i+99])
+end
+
+
+Collar9Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar9Wet[3],Collar9Wet[4],Collar9Wet[5])
+Collar9Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar9Wet[3],Collar9Wet[4],Collar9Wet[5])
+Classed9Wet =  RunLSTM(Collar9Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar11Wet = CSV.read("collar #11/ACCLOG00.csv";header = true, delim = ",")
+Collar11Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar11Wet[3]))
+Collar11Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar11Wet[4]))
+Collar11Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar11Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar11Wet[7])-100
+    Collar11Wet[6][i:i+2] .= mean(Collar11Wet[6][i+3:i+99])
+    Collar11Wet[7][i:i+2] .= mean(Collar11Wet[7][i+3:i+99])
+    Collar11Wet[8][i:i+2] .= mean(Collar11Wet[8][i+3:i+99])
+end
+
+
+Collar11Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar11Wet[3],Collar11Wet[4],Collar11Wet[5])
+Collar11Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar11Wet[3],Collar11Wet[4],Collar11Wet[5])
+Classed11Wet =  RunLSTM(Collar11Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar12Wet = CSV.read("collar #12/ACCLOG00.csv";header = true, delim = ",")
+Collar12Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12Wet[3]))
+Collar12Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12Wet[4]))
+Collar12Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar12Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar12Wet[7])-100
+    Collar12Wet[6][i:i+2] .= mean(Collar12Wet[6][i+3:i+99])
+    Collar12Wet[7][i:i+2] .= mean(Collar12Wet[7][i+3:i+99])
+    Collar12Wet[8][i:i+2] .= mean(Collar12Wet[8][i+3:i+99])
+end
+
+
+Collar12Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar12Wet[3],Collar12Wet[4],Collar12Wet[5])
+Collar12Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar12Wet[3],Collar12Wet[4],Collar12Wet[5])
+Classed12Wet =  RunLSTM(Collar12Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar14Wet = CSV.read("collar #14/ACCLOG00.csv";header = true, delim = ",")
+Collar14Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14Wet[3]))
+Collar14Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14Wet[4]))
+Collar14Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar14Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar14Wet[7])-100
+    Collar14Wet[6][i:i+2] .= mean(Collar14Wet[6][i+3:i+99])
+    Collar14Wet[7][i:i+2] .= mean(Collar14Wet[7][i+3:i+99])
+    Collar14Wet[8][i:i+2] .= mean(Collar14Wet[8][i+3:i+99])
+end
+
+
+Collar14Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar14Wet[3],Collar14Wet[4],Collar14Wet[5])
+Collar14Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar14Wet[3],Collar14Wet[4],Collar14Wet[5])
+Classed14Wet =  RunLSTM(Collar14Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar16Wet = CSV.read("collar #16/ACCLOG00.csv";header = true, delim = ",")
+Collar16Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar16Wet[3]))
+Collar16Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar16Wet[4]))
+Collar16Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar16Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar16Wet[7])-100
+    Collar16Wet[6][i:i+2] .= mean(Collar16Wet[6][i+3:i+99])
+    Collar16Wet[7][i:i+2] .= mean(Collar16Wet[7][i+3:i+99])
+    Collar16Wet[8][i:i+2] .= mean(Collar16Wet[8][i+3:i+99])
+end
+
+
+Collar16Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar16Wet[3],Collar16Wet[4],Collar16Wet[5])
+Collar16Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar16Wet[3],Collar16Wet[4],Collar16Wet[5])
+Classed16Wet =  RunLSTM(Collar16Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+Collar17Wet = CSV.read("collar #17/ACCLOG00.csv";header = true, delim = ",")
+Collar17Wet[:Filtx] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar17Wet[3]))
+Collar17Wet[:Filty] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar17Wet[4]))
+Collar17Wet[:Filtz] = filt(digitalfilter(responsetype, designmethod),convert(Array{Float64},Collar17Wet[5]))
+
+
+#filter still has a 1 point delay, replace the first point with mean of seq
+for i = 1:100:length(Collar17Wet[7])-100
+    Collar17Wet[6][i:i+2] .= mean(Collar17Wet[6][i+3:i+99])
+    Collar17Wet[7][i:i+2] .= mean(Collar17Wet[7][i+3:i+99])
+    Collar17Wet[8][i:i+2] .= mean(Collar17Wet[8][i+3:i+99])
+end
+
+
+Collar17Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar17Wet[3],Collar17Wet[4],Collar17Wet[5])
+Collar17Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar17Wet[3],Collar17Wet[4],Collar17Wet[5])
+Classed17Wet =  RunLSTM(Collar17Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
