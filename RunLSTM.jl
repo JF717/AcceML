@@ -439,3 +439,13 @@ end
 Collar17Wet[:TotalG] = map((x,y,z) -> (x + y + z),Collar17Wet[3],Collar17Wet[4],Collar17Wet[5])
 Collar17Wet[:AbsTotalG] = map((x,y,z) -> (abs(x) + abs(y) + abs(z) - 9.8),Collar17Wet[3],Collar17Wet[4],Collar17Wet[5])
 Classed17Wet =  RunLSTM(Collar17Wet,100,[3,4,5,6,7,8,9,10],6,5,TrainedModel14)
+
+CSV.write("ClassedCollarDataWet1.csv",Classed1Wet)
+CSV.write("ClassedCollarDataWet2.csv",Classed2Wet)
+CSV.write("ClassedCollarDataWet5.csv",Classed5Wet)
+CSV.write("ClassedCollarDataWet9.csv",Classed9Wet)
+CSV.write("ClassedCollarDataWet11.csv",Classed11Wet)
+CSV.write("ClassedCollarDataWet12.csv",Classed12Wet)
+CSV.write("ClassedCollarDataWet14.csv",Classed14Wet)
+CSV.write("ClassedCollarDataWet16.csv",Classed16Wet)
+CSV.write("ClassedCollarDataWet17.csv",Classed17Wet)
